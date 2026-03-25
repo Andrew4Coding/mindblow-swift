@@ -8,6 +8,7 @@ struct mindblowApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView(detector: detector, viewModel: viewModel)
+                .preferredColorScheme(.light)
         }
     }
 }

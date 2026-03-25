@@ -43,7 +43,6 @@ struct TireView: View {
                     .frame(width: baseSize, height: baseSize)
                     .scaleEffect(scale)
                     .rotationEffect(.degrees(rotationAngle))
-                    .shadow(color: .black.opacity(0.25), radius: 12, x: 0, y: 8)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .animation(.spring(response: 0.25, dampingFraction: 0.72), value: progress)

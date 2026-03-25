@@ -89,9 +89,10 @@ final class GameViewModel {
 
     private func applyInflationHapticIfNeeded(progress: Double) {
         let now = Date()
-        if now.timeIntervalSince(lastLightHaptic) > 0.35 {
+        if now.timeIntervalSince(lastLightHaptic) > 0.18 {
             lastLightHaptic = now
-            HapticsManager.light(intensity: progress)
+            let clamped = max(0.2, min(progress, 1.0))
+            HapticsManager.light(intensity: clamped)
         }
     }
 
@@ -118,10 +119,12 @@ final class GameViewModel {
         do {
             if explosionPlayer == nil || explosionPlayer?.url != url {
                 explosionPlayer = try AVAudioPlayer(contentsOf: url)
+                explosionPlayer?.numberOfLoops = 0
                 explosionPlayer?.prepareToPlay()
             }
 
             explosionPlayer?.currentTime = 0
+            explosionPlayer?.setVolume(1.0, fadeDuration: 0)
             explosionPlayer?.play()
         } catch {
             print("Failed to play explosion sound: \(error)")

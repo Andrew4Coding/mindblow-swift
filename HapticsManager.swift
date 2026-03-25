@@ -2,14 +2,21 @@ import Foundation
 import UIKit
 
 enum HapticsManager {
+    private static let impactGenerator = UIImpactFeedbackGenerator(style: .light)
+    private static let explosionGenerator = UINotificationFeedbackGenerator()
+
     static func light(intensity: Double) {
         let clamped = max(0.1, min(intensity, 1.0))
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred(intensity: CGFloat(clamped))
+        DispatchQueue.main.async {
+            impactGenerator.prepare()
+            impactGenerator.impactOccurred(intensity: CGFloat(clamped))
+        }
     }
 
     static func explosion() {
-        let generator = UINotificationFeedbackGenerator()
-        generator.notificationOccurred(.error)
+        DispatchQueue.main.async {
+            explosionGenerator.prepare()
+            explosionGenerator.notificationOccurred(.error)
+        }
     }
 }
