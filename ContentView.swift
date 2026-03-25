@@ -11,9 +11,6 @@ struct ContentView: View {
 
         ZStack(alignment: .bottom) {
             VStack(spacing: 24) {
-                Text("Target max: \(Int(viewModel.maxPSI)) psi")
-                    .font(.headline)
-
                 TireView(progress: normalizedPressure, isExploded: viewModel.isExploded)
                     .frame(height: 320)
                     .padding(.horizontal, 24)
@@ -21,10 +18,6 @@ struct ContentView: View {
                 BlowGaugeView(blowIntensity: Double(detector.blowIntensity))
 
                 VStack(spacing: 8) {
-                    Text("Pressure: \(viewModel.currentPSI, specifier: "%.1f") / \(viewModel.maxPSI, specifier: "%.0f") psi")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
                     if viewModel.isExploded {
                         Text("Boom! Tire exploded")
                             .font(.title2.bold())

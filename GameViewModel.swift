@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import AVFoundation
 
 @Observable
 final class GameViewModel {
@@ -18,6 +19,7 @@ final class GameViewModel {
     private let highScoreKey = "HighScorePercent"
     private var isBlowAudioPlaying = false
     private var lastLightHaptic: Date = .distantPast
+    private var explosionPlayer: AVAudioPlayer?
 
     init(
         range: ClosedRange<Double> = 18...32,
@@ -108,6 +110,21 @@ final class GameViewModel {
     }
 
     private func playExplosionSFX() {
-        // TODO: Play explosion sound effect here.
+        guard let url = Bundle.main.url(forResource: "explode", withExtension: "mp3") else {
+            print("explode.mp3 not found in bundle")
+            return
+        }
+
+        do {
+            if explosionPlayer == nil || explosionPlayer?.url != url {
+                explosionPlayer = try AVAudioPlayer(contentsOf: url)
+                explosionPlayer?.prepareToPlay()
+            }
+
+            explosionPlayer?.currentTime = 0
+            explosionPlayer?.play()
+        } catch {
+            print("Failed to play explosion sound: \(error)")
+        }
     }
 }

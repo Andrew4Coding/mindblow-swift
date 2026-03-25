@@ -20,11 +20,6 @@ struct TireView: View {
                     .shadow(color: .black.opacity(0.35), radius: 16, x: 0, y: 10)
                     .scaleEffect(isExploded ? 1.2 : scale)
                     .frame(width: baseSize, height: baseSize)
-                    .overlay(
-                        Circle()
-                            .stroke(style: StrokeStyle(lineWidth: 6, dash: [4, 8]))
-                            .foregroundStyle(.gray.opacity(0.7))
-                    )
 
                 Circle()
                     .fill(Color(white: 0.15))
