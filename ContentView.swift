@@ -8,14 +8,22 @@ struct ContentView: View {
 
     var body: some View {
         let normalizedPressure = min(1, viewModel.maxPSI == 0 ? 0 : viewModel.currentPSI / viewModel.maxPSI)
+        let isCalibrating = !detector.isCalibrated
 
         ZStack(alignment: .bottom) {
             VStack(spacing: 24) {
-                TireView(progress: normalizedPressure, isExploded: viewModel.isExploded)
+                TireView(
+                    progress: normalizedPressure,
+                    isExploded: viewModel.isExploded,
+                    isCalibrating: isCalibrating,
+                    hasBlownOnce: viewModel.hasBlownOnce
+                )
                     .frame(height: 320)
                     .padding(.horizontal, 24)
 
-                BlowGaugeView(blowIntensity: Double(detector.blowIntensity))
+                if detector.isCalibrated {
+                    BlowGaugeView(blowIntensity: Double(detector.blowIntensity))
+                }
 
                 VStack(spacing: 8) {
                     if viewModel.isExploded {
