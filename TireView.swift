@@ -8,6 +8,9 @@ struct TireView: View {
 
     @State private var rotationAngle: Double = 0
     @State private var isSpinning: Bool = false
+    @State private var smokeOpacity: Double = 0
+    @State private var smokeOffsetLeft: CGFloat = 0
+    @State private var smokeOffsetRight: CGFloat = 0
 
     var body: some View {
         GeometryReader { geo in
@@ -20,8 +23,8 @@ struct TireView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: baseSize * 0.95)
-                        .offset(x: baseSize * 0.36, y: baseSize * 0.08)
-                        .opacity(0.9)
+                        .offset(x: baseSize * 0.36 + smokeOffsetRight, y: baseSize * 0.08)
+                        .opacity(smokeOpacity)
                         .transition(.opacity.combined(with: .scale))
 
                     Image("smoke")
@@ -29,8 +32,8 @@ struct TireView: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: baseSize * 0.95)
                         .scaleEffect(x: -1, y: 1)
-                        .offset(x: -baseSize * 0.36, y: baseSize * 0.1)
-                        .opacity(0.9)
+                        .offset(x: -baseSize * 0.36 + smokeOffsetLeft, y: baseSize * 0.1)
+                        .opacity(smokeOpacity)
                         .transition(.opacity.combined(with: .scale))
                 }
 
@@ -48,7 +51,10 @@ struct TireView: View {
             .onAppear { updateRotationState() }
             .onChange(of: isCalibrating) { _ in updateRotationState() }
             .onChange(of: hasBlownOnce) { _ in updateRotationState() }
-            .onChange(of: isExploded) { _ in updateRotationState() }
+            .onChange(of: isExploded) { newValue in
+                updateRotationState()
+                handleSmoke(for: newValue)
+            }
         }
     }
 
@@ -66,6 +72,31 @@ struct TireView: View {
             isSpinning = false
             withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                 rotationAngle = 0
+            }
+        }
+    }
+
+    private func handleSmoke(for exploded: Bool) {
+        guard exploded else {
+            smokeOpacity = 0
+            smokeOffsetLeft = 0
+            smokeOffsetRight = 0
+            return
+        }
+
+        smokeOpacity = 0
+        smokeOffsetLeft = 0
+        smokeOffsetRight = 0
+
+        withAnimation(.easeOut(duration: 0.35)) {
+            smokeOpacity = 0.95
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            withAnimation(.easeInOut(duration: 1.0)) {
+                smokeOpacity = 0
+                smokeOffsetLeft = -60
+                smokeOffsetRight = 60
             }
         }
     }
