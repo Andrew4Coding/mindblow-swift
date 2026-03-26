@@ -1,76 +1,172 @@
-import SwiftUI
 import Combine
+import SwiftUI
 
 struct ContentView: View {
     @State var detector: BlowDetector
     @State var viewModel: GameViewModel
-    @State private var timer = Timer.publish(every: 0.05, on: .main, in: .common).autoconnect()
+    @State private var timer = Timer.publish(
+        every: 0.05,
+        on: .main,
+        in: .common
+    ).autoconnect()
+    @State private var showHowToPlay = false
+    @State private var showMenu = false
+    @Environment(\.scenePhase) var scenePhase
 
     var body: some View {
-        let normalizedPressure = min(1, viewModel.maxPSI == 0 ? 0 : viewModel.currentPSI / viewModel.maxPSI)
+        let normalizedPressure = min(
+            1,
+            viewModel.maxPSI == 0 ? 0 : viewModel.currentPSI / viewModel.maxPSI
+        )
         let isCalibrating = !detector.isCalibrated
 
         ZStack(alignment: .bottom) {
-            VStack(spacing: 24) {
+            if !isCalibrating && !viewModel.isExploded && !viewModel.isFinished
+                && !showHowToPlay
+            {
+                VStack(spacing: 10) {
+                    Text("Blow Here")
+                    Image(systemName: "chevron.down.2")
+                        .symbolEffect(
+                            .wiggle.byLayer,
+                            options: .repeat(.continuous)
+                        )
+                }
+            }
+            VStack {
+                HStack {
+                    Button(action: {
+                        showHowToPlay = true
+                    }) {
+                        Spacer()
+                        Image(systemName: "questionmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                    }
+                    
+                    Button(action: {
+                        showMenu = true
+                    }) {
+                        Image(systemName: "ellipsis.circle")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                    }
+                    .popover(isPresented: $showMenu) {
+                        VStack(spacing: 12) {
+                            Button(action: {
+                                detector.calibrate()
+                                showMenu = false
+                            }) {
+                                HStack {
+                                    Image(systemName: "waveform.circle")
+                                    Text("Recalibrate Background Noise")
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            
+                            Divider()
+                            
+                            Button(action: {
+                                exit(0)
+                            }) {
+                                HStack {
+                                    Image(systemName: "xmark.circle")
+                                    Text("Exit App")
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .foregroundColor(.red)
+                        }
+                        .padding(20)
+                        .presentationCompactAdaptation(.popover)
+                    }
+                }
+                .padding(.top, 8)
+                .padding(.bottom, 16)
+
+                Spacer()
+
                 TireView(
                     progress: normalizedPressure,
                     isExploded: viewModel.isExploded,
                     isCalibrating: isCalibrating,
                     hasBlownOnce: viewModel.hasBlownOnce
                 )
-                    .frame(height: 320)
-                    .padding(.horizontal, 24)
+                .frame(height: 320)
 
-                if detector.isCalibrated {
-                    BlowGaugeView(blowIntensity: Double(detector.blowIntensity))
-                }
+                VStack(spacing: 12) {
+                    if detector.isCalibrated {
+                        BlowGaugeView(
+                            blowIntensity: Double(detector.blowIntensity)
+                        )
+                    }
 
-                VStack(spacing: 8) {
-                    if viewModel.isExploded {
-                        Text("Boom! Tire exploded")
-                            .font(.title2.bold())
-                            .foregroundColor(.red)
-                            .transition(.scale.combined(with: .opacity))
-                    } else if viewModel.isFinished {
-                        VStack(spacing: 4) {
-                            Text("Score: \(Int(viewModel.scorePercent * 100))%")
+                    VStack(spacing: 8) {
+                        if viewModel.isExploded {
+                            Text("Boom! Tire exploded")
+                                .font(.title2.bold())
+                                .foregroundColor(.red)
+                                .transition(.scale.combined(with: .opacity))
+                        } else if viewModel.isFinished {
+                            VStack(spacing: 4) {
+                                Text(
+                                    "Score: \(Int(viewModel.scorePercent * 100))%"
+                                )
                                 .font(.title.bold())
-                            if viewModel.scorePercent >= viewModel.highScore && viewModel.scorePercent > 0 {
-                                Text("High score!")
-                                    .font(.headline)
-                                    .foregroundColor(.green)
+                                if viewModel.scorePercent >= viewModel.highScore
+                                    && viewModel.scorePercent > 0
+                                {
+                                    Text("High score!")
+                                        .font(.headline)
+                                        .foregroundColor(.green)
+                                }
                             }
+                            .transition(.opacity)
                         }
-                        .transition(.opacity)
-                    }
-                }
-
-                HStack(spacing: 16) {
-                    if viewModel.hasBlownOnce && !viewModel.isFinished && !viewModel.isExploded {
-                        Button(action: {
-                            viewModel.finish()
-                        }) {
-                            Text("Finish")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.blue)
                     }
 
-                    if viewModel.isFinished || viewModel.isExploded {
-                        Button(action: {
-                            viewModel.startNewSession()
-                        }) {
-                            Text("Restart")
-                                .font(.headline)
-                                .frame(maxWidth: .infinity)
+                    HStack(spacing: 16) {
+                        if viewModel.hasBlownOnce && !viewModel.isFinished
+                            && !viewModel.isExploded
+                        {
+                            Button(action: {
+                                viewModel.finish()
+                            }) {
+                                Text("Finish")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.blue)
                         }
-                        .buttonStyle(.bordered)
+
+                        if viewModel.isFinished || viewModel.isExploded {
+                            Button(action: {
+                                viewModel.startNewSession()
+                            }) {
+                                Text("Restart")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+
+                    if !detector.isCalibrated {
+                        HStack (spacing: 12) {
+                            Image(systemName: "waveform.badge.microphone")
+                                .symbolEffect(.wiggle.byLayer, options: .repeat(.continuous))
+                            Text("Calibrating background noise...")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                        
                     }
                 }
+                Spacer()
             }
-            .padding()
+            .padding(20)
+            .frame(maxHeight: .infinity)
             .onReceive(timer) { _ in
                 viewModel.update(
                     blowIntensity: Double(detector.blowIntensity),
@@ -81,17 +177,13 @@ struct ContentView: View {
             .onAppear {
                 viewModel.startNewSession()
             }
-
-            if !detector.isCalibrated {
-                Text("Calibrating... please stay quiet")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 12)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Capsule())
-                    .padding(.bottom, 8)
+            .sheet(isPresented: $showHowToPlay) {
+                HowToPlay()
+                    .presentationDetents([.medium])
+                    .background(.white)
             }
+    
+            
         }
     }
 }

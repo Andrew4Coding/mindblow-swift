@@ -199,6 +199,15 @@ class BlowDetector {
         }
     }
 
+    func calibrate() {
+        isCalibrated = false
+        baseNoiseRMS = 0.0
+        baseHighFreqNoise = 0.0
+        calibrationFrames = 0
+        blowIntensity = 0.0
+        previousIntensity = 0.0
+    }
+
     deinit {
         engine.stop()
         if let setup = fftSetup {
