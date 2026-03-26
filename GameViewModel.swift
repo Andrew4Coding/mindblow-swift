@@ -78,7 +78,7 @@ final class GameViewModel {
         }
     }
 
-    private func triggerExplosion() {
+    func triggerExplosion() {
         isExploded = true
         isFinished = true
         currentPSI = maxPSI

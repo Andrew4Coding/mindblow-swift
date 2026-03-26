@@ -1,5 +1,6 @@
 import Combine
 import SwiftUI
+import UnionConfetti
 
 struct ContentView: View {
     @State var detector: BlowDetector
@@ -11,6 +12,8 @@ struct ContentView: View {
     ).autoconnect()
     @State private var showHowToPlay = false
     @State private var showMenu = false
+    @State private var shakeOffset: CGFloat = 0
+    @State private var isHighScore = false
     @Environment(\.scenePhase) var scenePhase
 
     var body: some View {
@@ -90,7 +93,10 @@ struct ContentView: View {
                     progress: normalizedPressure,
                     isExploded: viewModel.isExploded,
                     isCalibrating: isCalibrating,
-                    hasBlownOnce: viewModel.hasBlownOnce
+                    hasBlownOnce: viewModel.hasBlownOnce,
+                    onTapExplosion: {
+                        viewModel.triggerExplosion()
+                    }
                 )
                 .frame(height: 320)
 
@@ -103,7 +109,7 @@ struct ContentView: View {
 
                     VStack(spacing: 8) {
                         if viewModel.isExploded {
-                            Text("Boom! Tire exploded")
+                            Text("Boom! Game Over")
                                 .font(.title2.bold())
                                 .foregroundColor(.red)
                                 .transition(.scale.combined(with: .opacity))
@@ -167,6 +173,12 @@ struct ContentView: View {
             }
             .padding(20)
             .frame(maxHeight: .infinity)
+            .offset(x: shakeOffset)
+            .onChange(of: viewModel.isExploded) { newValue in
+                if newValue {
+                    triggerShake()
+                }
+            }
             .onReceive(timer) { _ in
                 viewModel.update(
                     blowIntensity: Double(detector.blowIntensity),
@@ -182,8 +194,25 @@ struct ContentView: View {
                     .presentationDetents([.medium])
                     .background(.white)
             }
+        }
+        .overlay(ConfettiView(isPresented: $isHighScore))
+    }
     
-            
+    private func triggerShake() {
+        let shakeAnimation = Animation.easeInOut(duration: 0.05)
+        
+        for i in 0..<6 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.05) {
+                withAnimation(shakeAnimation) {
+                    shakeOffset = (i % 2 == 0) ? 10 : -10
+                }
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            withAnimation(shakeAnimation) {
+                shakeOffset = 0
+            }
         }
     }
 }
