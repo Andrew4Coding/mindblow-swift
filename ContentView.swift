@@ -10,7 +10,7 @@ struct ContentView: View {
         on: .main,
         in: .common
     ).autoconnect()
-    @State private var showHowToPlay = false
+    @State private var showHowToPlay = true
     @State private var showMenu = false
     @State private var shakeOffset: CGFloat = 0
     @State private var isHighScore = false

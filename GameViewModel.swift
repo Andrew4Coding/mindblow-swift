@@ -18,7 +18,6 @@ final class GameViewModel {
     private let userDefaults: UserDefaults
     private let highScoreKey = "HighScorePercent"
     private var isBlowAudioPlaying = false
-    private var lastLightHaptic: Date = .distantPast
     private var explosionPlayer: AVAudioPlayer?
 
     init(
@@ -38,17 +37,20 @@ final class GameViewModel {
         isExploded = false
         scorePercent = 0
         hasBlownOnce = false
+        HapticsManager.stopPressureHaptics()
         stopBlowAudioLoop()
     }
 
     func update(blowIntensity: Double, deltaTime: Double, isCalibrated: Bool) {
         guard isCalibrated else {
             stopBlowAudioLoop()
+            HapticsManager.stopPressureHaptics()
             return
         }
 
         guard !isFinished else {
             stopBlowAudioLoop()
+            HapticsManager.stopPressureHaptics()
             return
         }
 
@@ -58,18 +60,20 @@ final class GameViewModel {
             let increment = blowIntensity * inflationRatePerSecond * deltaTime
             currentPSI += increment
             let progress = min(1, currentPSI / maxPSI)
-            applyInflationHapticIfNeeded(progress: progress)
+            HapticsManager.startPressureHaptics(progress: progress)
             if currentPSI >= maxPSI {
                 triggerExplosion()
             }
         } else {
             stopBlowAudioLoop()
+            HapticsManager.stopPressureHaptics()
         }
     }
 
     func finish() {
         guard hasBlownOnce && !isFinished else { return }
         isFinished = true
+        HapticsManager.stopPressureHaptics()
         stopBlowAudioLoop()
         scorePercent = min(1, currentPSI / maxPSI)
         if scorePercent > highScore {
@@ -85,15 +89,6 @@ final class GameViewModel {
         stopBlowAudioLoop()
         playExplosionSFX()
         HapticsManager.explosion()
-    }
-
-    private func applyInflationHapticIfNeeded(progress: Double) {
-        let now = Date()
-        if now.timeIntervalSince(lastLightHaptic) > 0.18 {
-            lastLightHaptic = now
-            let clamped = max(0.2, min(progress, 1.0))
-            HapticsManager.light(intensity: clamped)
-        }
     }
 
     // MARK: - Audio placeholders

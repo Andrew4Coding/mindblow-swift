@@ -25,11 +25,12 @@ struct TireView: View {
             let baseSize = min(geo.size.width, geo.size.height) * 0.8
             let scale = isExploded ? 1.05 : (0.9 + (progress * 0.35))
             let tireImage = isExploded ? "tire-full-flat" : "tire-full"
+            let tireBaseSize = isExploded ? baseSize * 0.95 : baseSize
             ZStack {
                 Image(tireImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: baseSize, height: baseSize)
+                    .frame(width: tireBaseSize, height: tireBaseSize)
                     .scaleEffect(scale * tappedScale)
                     .rotationEffect(.degrees(rotationAngle))
 

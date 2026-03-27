@@ -34,30 +34,26 @@ class BlowDetector {
     }
 
     private func setupMicrophone() {
-        #if os(iOS)
-            let audioSession = AVAudioSession.sharedInstance()
-            do {
-                try audioSession.setCategory(
-                    .playAndRecord,
-                    mode: .measurement,
-                    options: [.duckOthers, .defaultToSpeaker]
-                )
-                try audioSession.setActive(true)
+        let audioSession = AVAudioSession.sharedInstance()
+        do {
+            try audioSession.setCategory(
+                .playAndRecord,
+                mode: .measurement,
+                options: [.duckOthers, .defaultToSpeaker]
+            )
+            try audioSession.setActive(true)
+            try audioSession.setAllowHapticsAndSystemSoundsDuringRecording(true)
 
-                audioSession.requestRecordPermission { [weak self] allowed in
-                    DispatchQueue.main.async {
-                        if allowed {
-                            self?.startEngine()
-                        }
+            audioSession.requestRecordPermission { [weak self] allowed in
+                DispatchQueue.main.async {
+                    if allowed {
+                        self?.startEngine()
                     }
                 }
-            } catch {
-                print("Failed to set up audio session: \(error)")
             }
-        #else
-            // macOS simple setup
-            startEngine()
-        #endif
+        } catch {
+            print("Failed to set up audio session: \(error)")
+        }
     }
 
     private func startEngine() {
