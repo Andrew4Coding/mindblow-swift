@@ -15,100 +15,117 @@ struct TireView: View {
     @State private var tappedScale: CGFloat = 1.0
     @State private var tapCount: Int = 0
     @State private var tapResetTimer: Timer?
+    @State private var bounceOffset: CGFloat = 0
+    @State private var isParticleExplosion: Bool = false
 
     var shouldExplodeFromTaps: Bool {
         return tapCount >= 10
     }
 
     var body: some View {
-        GeometryReader { geo in
-            let baseSize = min(geo.size.width, geo.size.height) * 0.8
-            let scale = isExploded ? 1.05 : (0.9 + (progress * 0.35))
-            let tireImage = isExploded ? "tire-full-flat" : "tire-full"
-            let tireBaseSize = isExploded ? baseSize * 0.95 : baseSize
-            ZStack {
-                Image(tireImage)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: tireBaseSize, height: tireBaseSize)
-                    .scaleEffect(scale * tappedScale)
-                    .rotationEffect(.degrees(rotationAngle))
-
-                if isExploded {
-                    Image("smoke")
+        ZStack {
+            // Tire container
+            GeometryReader { geo in
+                let baseSize = min(geo.size.width, geo.size.height) * 0.8
+                let scale = isExploded ? 1.05 : (0.9 + (progress * 0.35))
+                let tireImage = isExploded ? "tire-full-flat" : "tire-full"
+                let tireBaseSize = isExploded ? baseSize * 0.95 : baseSize
+                ZStack {
+                    Image(tireImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
-                        .frame(width: baseSize * 0.95)
-                        .offset(
-                            x: baseSize * 0.36 + smokeOffsetRight,
-                            y: baseSize * 0.25
-                        )
-                        .opacity(smokeOpacity)
-                        .transition(.opacity.combined(with: .scale))
+                        .frame(width: tireBaseSize, height: tireBaseSize)
+                        .scaleEffect(scale * tappedScale)
+                        .rotationEffect(.degrees(rotationAngle))
+                        .offset(y: bounceOffset)
 
-                    Image("smoke")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: baseSize * 0.95)
-                        .scaleEffect(x: -1, y: 1)
-                        .offset(
-                            x: -baseSize * 0.36 + smokeOffsetLeft,
-                            y: baseSize * 0.25
-                        )
-                        .opacity(smokeOpacity)
-                        .transition(.opacity.combined(with: .scale))
+                    if isExploded {
+                        Image("smoke")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: baseSize * 0.95)
+                            .offset(
+                                x: baseSize * 0.36 + smokeOffsetRight,
+                                y: baseSize * 0.25
+                            )
+                            .opacity(smokeOpacity)
+                            .transition(.opacity.combined(with: .scale))
+
+                        Image("smoke")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: baseSize * 0.95)
+                            .scaleEffect(x: -1, y: 1)
+                            .offset(
+                                x: -baseSize * 0.36 + smokeOffsetLeft,
+                                y: baseSize * 0.25
+                            )
+                            .opacity(smokeOpacity)
+                            .transition(.opacity.combined(with: .scale))
+                    }
                 }
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(
-                .spring(response: 0.25, dampingFraction: 0.72),
-                value: progress
-            )
-            .animation(.easeOut(duration: 0.22), value: isExploded)
-            .onTapGesture {
-                // Don't allow tap explosion if already exploded
-                guard !isExploded else { return }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(
+                    .spring(response: 0.25, dampingFraction: 0.72),
+                    value: progress
+                )
+                .animation(.easeOut(duration: 0.22), value: isExploded)
+                .onTapGesture {
+                    // Don't allow tap explosion if already exploded
+                    guard !isExploded else { return }
 
-                // Haptic feedback for tap
-                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                impactFeedback.impactOccurred()
+                    // Haptic feedback for tap
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
 
-                // Animate the tap
-                tappedScale = 1.1
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
-                    tappedScale = 1.0
-                }
+                    // Animate the tap
+                    tappedScale = 1.1
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                        tappedScale = 1.0
+                    }
 
-                // Increment tap count
-                tapCount += 1
+                    // Increment tap count
+                    tapCount += 1
 
-                // Reset timer if it exists
-                tapResetTimer?.invalidate()
-
-                // Check if reached 10 taps
-                if tapCount >= 10 {
-                    tapCount = 0  // Reset for future
+                    // Reset timer if it exists
                     tapResetTimer?.invalidate()
-                    tapResetTimer = nil
-                    onTapExplosion?()
-                    return
-                }
 
-                // Set timer to reset tap count after 2 seconds of inactivity
-                tapResetTimer = Timer.scheduledTimer(
-                    withTimeInterval: 2.0,
-                    repeats: false
-                ) { _ in
-                    tapCount = 0
-                    tapResetTimer = nil
+                    // Check if reached 10 taps
+                    if tapCount >= 10 {
+                        tapCount = 0  // Reset for future
+                        tapResetTimer?.invalidate()
+                        tapResetTimer = nil
+                        onTapExplosion?()
+                        return
+                    }
+
+                    // Set timer to reset tap count after 2 seconds of inactivity
+                    tapResetTimer = Timer.scheduledTimer(
+                        withTimeInterval: 2.0,
+                        repeats: false
+                    ) { _ in
+                        tapCount = 0
+                        tapResetTimer = nil
+                    }
+                }
+                .onAppear { updateRotationState() }
+                .onChange(of: isCalibrating) { updateRotationState() }
+                .onChange(of: hasBlownOnce) { updateRotationState() }
+                .onChange(of: isExploded) { oldValue, newValue in
+                    updateRotationState()
+                    if newValue {
+                        triggerExplosionBounce()
+                        handleSmoke(for: newValue)
+                    } else {
+                        handleSmoke(for: newValue)
+                    }
                 }
             }
-            .onAppear { updateRotationState() }
-            .onChange(of: isCalibrating) { updateRotationState() }
-            .onChange(of: hasBlownOnce) { updateRotationState() }
-            .onChange(of: isExploded) { oldValue, newValue in
-                updateRotationState()
-                handleSmoke(for: newValue)
+
+            // Particle explosion (on top, full screen)
+            if isParticleExplosion {
+                ParticleExplosionView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
     }
@@ -116,6 +133,28 @@ struct TireView: View {
     private func updateRotationState() {
         isSpinning = false
         rotationAngle = 0
+    }
+
+    private func triggerExplosionBounce() {
+        // Trigger particle explosion
+        isParticleExplosion = true
+        
+        // Animate bounce up
+        withAnimation(.easeOut(duration: 0.12)) {
+            bounceOffset = -80
+        }
+        
+        // Bounce back down
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
+            withAnimation(.easeIn(duration: 0.15)) {
+                bounceOffset = 0
+            }
+        }
+        
+        // Turn off particles after animation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            isParticleExplosion = false
+        }
     }
 
     private func handleSmoke(for exploded: Bool) {

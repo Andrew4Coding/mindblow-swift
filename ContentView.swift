@@ -101,7 +101,7 @@ struct ContentView: View {
                 .frame(height: 320)
 
                 VStack(spacing: 12) {
-                    if detector.isCalibrated {
+                    if (detector.isCalibrated && !viewModel.isFinished && !viewModel.isExploded) {
                         BlowGaugeView(
                             blowIntensity: Double(detector.blowIntensity)
                         )
