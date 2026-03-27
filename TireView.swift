@@ -15,7 +15,7 @@ struct TireView: View {
     @State private var tappedScale: CGFloat = 1.0
     @State private var tapCount: Int = 0
     @State private var tapResetTimer: Timer?
-    
+
     var shouldExplodeFromTaps: Bool {
         return tapCount >= 10
     }
@@ -39,7 +39,10 @@ struct TireView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: baseSize * 0.95)
-                        .offset(x: baseSize * 0.36 + smokeOffsetRight, y: baseSize * 0.25)
+                        .offset(
+                            x: baseSize * 0.36 + smokeOffsetRight,
+                            y: baseSize * 0.25
+                        )
                         .opacity(smokeOpacity)
                         .transition(.opacity.combined(with: .scale))
 
@@ -48,34 +51,40 @@ struct TireView: View {
                         .aspectRatio(contentMode: .fit)
                         .frame(width: baseSize * 0.95)
                         .scaleEffect(x: -1, y: 1)
-                        .offset(x: -baseSize * 0.36 + smokeOffsetLeft, y: baseSize * 0.25)
+                        .offset(
+                            x: -baseSize * 0.36 + smokeOffsetLeft,
+                            y: baseSize * 0.25
+                        )
                         .opacity(smokeOpacity)
                         .transition(.opacity.combined(with: .scale))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .animation(.spring(response: 0.25, dampingFraction: 0.72), value: progress)
+            .animation(
+                .spring(response: 0.25, dampingFraction: 0.72),
+                value: progress
+            )
             .animation(.easeOut(duration: 0.22), value: isExploded)
             .onTapGesture {
                 // Don't allow tap explosion if already exploded
                 guard !isExploded else { return }
-                
+
                 // Haptic feedback for tap
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.impactOccurred()
-                
+
                 // Animate the tap
                 tappedScale = 1.1
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
                     tappedScale = 1.0
                 }
-                
+
                 // Increment tap count
                 tapCount += 1
-                
+
                 // Reset timer if it exists
                 tapResetTimer?.invalidate()
-                
+
                 // Check if reached 10 taps
                 if tapCount >= 10 {
                     tapCount = 0  // Reset for future
@@ -84,17 +93,20 @@ struct TireView: View {
                     onTapExplosion?()
                     return
                 }
-                
+
                 // Set timer to reset tap count after 2 seconds of inactivity
-                tapResetTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+                tapResetTimer = Timer.scheduledTimer(
+                    withTimeInterval: 2.0,
+                    repeats: false
+                ) { _ in
                     tapCount = 0
                     tapResetTimer = nil
                 }
             }
             .onAppear { updateRotationState() }
-            .onChange(of: isCalibrating) { _ in updateRotationState() }
-            .onChange(of: hasBlownOnce) { _ in updateRotationState() }
-            .onChange(of: isExploded) { newValue in
+            .onChange(of: isCalibrating) { updateRotationState() }
+            .onChange(of: hasBlownOnce) { updateRotationState() }
+            .onChange(of: isExploded) { oldValue, newValue in
                 updateRotationState()
                 handleSmoke(for: newValue)
             }
@@ -133,6 +145,12 @@ struct TireView: View {
 }
 
 #Preview {
-    TireView(progress: 0.6, isExploded: false, isCalibrating: true, hasBlownOnce: false, onTapExplosion: nil)
-        .frame(width: 300, height: 300)
+    TireView(
+        progress: 0.6,
+        isExploded: false,
+        isCalibrating: true,
+        hasBlownOnce: false,
+        onTapExplosion: nil
+    )
+    .frame(width: 300, height: 300)
 }

@@ -14,7 +14,7 @@ class BlowDetector {
     private var baseHighFreqNoise: Float = 0.0
 
     private var calibrationFrames: Int = 0
-    private let requiredCalibrationFrames = 40  
+    private let requiredCalibrationFrames = 40
     private var previousIntensity: Float = 0.0
 
     private let fftSize = 1024
@@ -44,7 +44,7 @@ class BlowDetector {
             try audioSession.setActive(true)
             try audioSession.setAllowHapticsAndSystemSoundsDuringRecording(true)
 
-            audioSession.requestRecordPermission { [weak self] allowed in
+            AVAudioApplication.requestRecordPermission { [weak self] allowed in
                 DispatchQueue.main.async {
                     if allowed {
                         self?.startEngine()

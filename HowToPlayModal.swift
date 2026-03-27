@@ -2,7 +2,7 @@ import SwiftUI
 
 struct HowToPlay: View {
     @Environment(\.dismiss) var dismiss
-    
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -11,8 +11,8 @@ struct HowToPlay: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(height: 150)
-                    
-                    HStack (spacing: 20) {
+
+                    HStack(spacing: 20) {
                         Image("ilustration-success")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
@@ -22,7 +22,7 @@ struct HowToPlay: View {
                             .aspectRatio(contentMode: .fit)
                             .frame(height: 180)
                     }
-                    
+
                     Text("*AI Generated")
                         .font(.caption2)
                         .foregroundColor(.gray)

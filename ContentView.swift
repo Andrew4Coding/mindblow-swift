@@ -46,7 +46,7 @@ struct ContentView: View {
                             .font(.title2)
                             .foregroundColor(.blue)
                     }
-                    
+
                     Button(action: {
                         showMenu = true
                     }) {
@@ -66,9 +66,9 @@ struct ContentView: View {
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
-                            
+
                             Divider()
-                            
+
                             Button(action: {
                                 exit(0)
                             }) {
@@ -159,14 +159,17 @@ struct ContentView: View {
                     }
 
                     if !detector.isCalibrated {
-                        HStack (spacing: 12) {
+                        HStack(spacing: 12) {
                             Image(systemName: "waveform.badge.microphone")
-                                .symbolEffect(.wiggle.byLayer, options: .repeat(.continuous))
+                                .symbolEffect(
+                                    .wiggle.byLayer,
+                                    options: .repeat(.continuous)
+                                )
                             Text("Calibrating background noise...")
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
                         }
-                        
+
                     }
                 }
                 Spacer()
@@ -174,7 +177,7 @@ struct ContentView: View {
             .padding(20)
             .frame(maxHeight: .infinity)
             .offset(x: shakeOffset)
-            .onChange(of: viewModel.isExploded) { newValue in
+            .onChange(of: viewModel.isExploded) { oldValue, newValue in
                 if newValue {
                     triggerShake()
                 }
@@ -197,10 +200,10 @@ struct ContentView: View {
         }
         .overlay(ConfettiView(isPresented: $isHighScore))
     }
-    
+
     private func triggerShake() {
         let shakeAnimation = Animation.easeInOut(duration: 0.05)
-        
+
         for i in 0..<6 {
             DispatchQueue.main.asyncAfter(deadline: .now() + Double(i) * 0.05) {
                 withAnimation(shakeAnimation) {
@@ -208,7 +211,7 @@ struct ContentView: View {
                 }
             }
         }
-        
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             withAnimation(shakeAnimation) {
                 shakeOffset = 0

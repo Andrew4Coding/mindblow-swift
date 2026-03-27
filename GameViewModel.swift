@@ -1,6 +1,6 @@
+import AVFoundation
 import Foundation
 import SwiftUI
-import AVFoundation
 
 @Observable
 final class GameViewModel {
@@ -106,7 +106,12 @@ final class GameViewModel {
     }
 
     private func playExplosionSFX() {
-        guard let url = Bundle.main.url(forResource: "explode", withExtension: "mp3") else {
+        guard
+            let url = Bundle.main.url(
+                forResource: "explode",
+                withExtension: "mp3"
+            )
+        else {
             print("explode.mp3 not found in bundle")
             return
         }
