@@ -17,8 +17,8 @@ final class GameViewModel {
     private let sessionRange: ClosedRange<Double>
     private let userDefaults: UserDefaults
     private let highScoreKey = "HighScorePercent"
-    private var isBlowAudioPlaying = false
     private var explosionPlayer: AVAudioPlayer?
+    private var backgroundMusicPlayer: AVAudioPlayer?
 
     init(
         range: ClosedRange<Double> = 18...32,
@@ -28,6 +28,7 @@ final class GameViewModel {
         self.userDefaults = userDefaults
         self.highScore = userDefaults.double(forKey: highScoreKey)
         self.maxPSI = Double.random(in: range)
+        startBackgroundMusic()
     }
 
     func startNewSession() {
@@ -38,25 +39,21 @@ final class GameViewModel {
         scorePercent = 0
         hasBlownOnce = false
         HapticsManager.stopPressureHaptics()
-        stopBlowAudioLoop()
     }
 
     func update(blowIntensity: Double, deltaTime: Double, isCalibrated: Bool) {
         guard isCalibrated else {
-            stopBlowAudioLoop()
             HapticsManager.stopPressureHaptics()
             return
         }
 
         guard !isFinished else {
-            stopBlowAudioLoop()
             HapticsManager.stopPressureHaptics()
             return
         }
 
         if blowIntensity > blowThreshold {
             hasBlownOnce = true
-            startBlowAudioLoop()
             let increment = blowIntensity * inflationRatePerSecond * deltaTime
             currentPSI += increment
             let progress = min(1, currentPSI / maxPSI)
@@ -65,7 +62,6 @@ final class GameViewModel {
                 triggerExplosion()
             }
         } else {
-            stopBlowAudioLoop()
             HapticsManager.stopPressureHaptics()
         }
     }
@@ -74,7 +70,6 @@ final class GameViewModel {
         guard hasBlownOnce && !isFinished else { return }
         isFinished = true
         HapticsManager.stopPressureHaptics()
-        stopBlowAudioLoop()
         scorePercent = min(1, currentPSI / maxPSI)
         if scorePercent > highScore {
             highScore = scorePercent
@@ -86,24 +81,11 @@ final class GameViewModel {
         isExploded = true
         isFinished = true
         currentPSI = maxPSI
-        stopBlowAudioLoop()
         playExplosionSFX()
         HapticsManager.explosion()
     }
 
-    // MARK: - Audio placeholders
-
-    private func startBlowAudioLoop() {
-        guard !isBlowAudioPlaying else { return }
-        isBlowAudioPlaying = true
-        // TODO: Start looping blow sound effect here.
-    }
-
-    private func stopBlowAudioLoop() {
-        guard isBlowAudioPlaying else { return }
-        isBlowAudioPlaying = false
-        // TODO: Stop blow loop audio here.
-    }
+    // MARK: - Audio
 
     private func playExplosionSFX() {
         guard
@@ -124,10 +106,32 @@ final class GameViewModel {
             }
 
             explosionPlayer?.currentTime = 0
-            explosionPlayer?.setVolume(1.0, fadeDuration: 0)
+            explosionPlayer?.setVolume(1, fadeDuration: 0)
             explosionPlayer?.play()
         } catch {
             print("Failed to play explosion sound: \(error)")
+        }
+    }
+
+    private func startBackgroundMusic() {
+        guard
+            let url = Bundle.main.url(
+                forResource: "bgmusic",
+                withExtension: "mp3"
+            )
+        else {
+            print("bgmusic.mp3 not found in bundle")
+            return
+        }
+
+        do {
+            backgroundMusicPlayer = try AVAudioPlayer(contentsOf: url)
+            backgroundMusicPlayer?.numberOfLoops = -1
+            backgroundMusicPlayer?.volume = 0.2
+            backgroundMusicPlayer?.prepareToPlay()
+            backgroundMusicPlayer?.play()
+        } catch {
+            print("Failed to play background music: \(error)")
         }
     }
 }
