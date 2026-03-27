@@ -7,28 +7,15 @@ struct HowToPlay: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .center, spacing: 8) {
+
                     Image("ilustration-blow")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(height: 150)
-
-                    HStack(spacing: 20) {
-                        Image("ilustration-success")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(height: 150)
-                        Image("ilustration-explode")
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(height: 180)
-                    }
-
-                    Text("*AI Generated")
-                        .font(.caption2)
-                        .foregroundColor(.gray)
+                    Text("Blow hard, but not too much!")
                 }
             }
-            .navigationTitle("Instructions")
+            .navigationTitle("How to Play?")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

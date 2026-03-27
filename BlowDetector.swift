@@ -30,10 +30,10 @@ class BlowDetector {
             FFTRadix(kFFTRadix2)
         )
 
-        setupMicrophone()
+        setupAudioSession()
     }
 
-    private func setupMicrophone() {
+    private func setupAudioSession() {
         let audioSession = AVAudioSession.sharedInstance()
         do {
             try audioSession.setCategory(
@@ -46,14 +46,22 @@ class BlowDetector {
 
             AVAudioApplication.requestRecordPermission { [weak self] allowed in
                 DispatchQueue.main.async {
-                    if allowed {
-                        self?.startEngine()
+                    if !allowed {
+                        print("Microphone permission denied")
                     }
                 }
             }
         } catch {
             print("Failed to set up audio session: \(error)")
         }
+    }
+
+    func startRecording() {
+        guard engine.attachedNodes.isEmpty || !engine.isRunning else {
+            print("Engine already running")
+            return
+        }
+        startEngine()
     }
 
     private func startEngine() {

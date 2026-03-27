@@ -28,6 +28,7 @@ final class GameViewModel {
         self.userDefaults = userDefaults
         self.highScore = userDefaults.double(forKey: highScoreKey)
         self.maxPSI = Double.random(in: range)
+        
         startBackgroundMusic()
     }
 
@@ -68,7 +69,9 @@ final class GameViewModel {
 
     func finish() {
         guard hasBlownOnce && !isFinished else { return }
-        isFinished = true
+        withAnimation {
+            isFinished = true
+        }
         HapticsManager.stopPressureHaptics()
         scorePercent = min(1, currentPSI / maxPSI)
         if scorePercent > highScore {
@@ -79,7 +82,9 @@ final class GameViewModel {
 
     func triggerExplosion() {
         isExploded = true
-        isFinished = true
+        withAnimation {
+            isFinished = true
+        }
         currentPSI = maxPSI
         playExplosionSFX()
         HapticsManager.explosion()

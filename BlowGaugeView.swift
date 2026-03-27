@@ -6,7 +6,7 @@ struct BlowGaugeView: View {
     var body: some View {
         ProgressView(value: blowIntensity, total: 1)
             .progressViewStyle(.linear)
-            .tint(.orange)
+            .tint(.blue)
             .animation(.easeOut(duration: 0.12), value: blowIntensity)
     }
 }

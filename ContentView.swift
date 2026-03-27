@@ -10,10 +10,12 @@ struct ContentView: View {
         on: .main,
         in: .common
     ).autoconnect()
-    @State private var showHowToPlay = true
+    @State private var showHowToPlay = false
     @State private var showMenu = false
     @State private var shakeOffset: CGFloat = 0
     @State private var isHighScore = false
+    @State private var hasStartedRecording = false
+    @State private var needsInitialSetup = true
     @Environment(\.scenePhase) var scenePhase
 
     var body: some View {
@@ -24,7 +26,8 @@ struct ContentView: View {
         let isCalibrating = !detector.isCalibrated
 
         ZStack(alignment: .bottom) {
-            if !isCalibrating && !viewModel.isExploded && !viewModel.isFinished
+            if hasStartedRecording && !isCalibrating && !viewModel.isExploded
+                && !viewModel.isFinished
                 && !showHowToPlay
             {
                 VStack(spacing: 10) {
@@ -36,7 +39,7 @@ struct ContentView: View {
                         )
                 }
             }
-            VStack {
+            VStack(spacing: 20) {
                 HStack {
                     Button(action: {
                         showHowToPlay = true
@@ -45,43 +48,6 @@ struct ContentView: View {
                         Image(systemName: "questionmark.circle.fill")
                             .font(.title2)
                             .foregroundColor(.blue)
-                    }
-
-                    Button(action: {
-                        showMenu = true
-                    }) {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.title2)
-                            .foregroundColor(.blue)
-                    }
-                    .popover(isPresented: $showMenu) {
-                        VStack(spacing: 12) {
-                            Button(action: {
-                                detector.calibrate()
-                                showMenu = false
-                            }) {
-                                HStack {
-                                    Image(systemName: "waveform.circle")
-                                    Text("Recalibrate Background Noise")
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-
-                            Divider()
-
-                            Button(action: {
-                                exit(0)
-                            }) {
-                                HStack {
-                                    Image(systemName: "xmark.circle")
-                                    Text("Exit App")
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            }
-                            .foregroundColor(.red)
-                        }
-                        .padding(20)
-                        .presentationCompactAdaptation(.popover)
                     }
                 }
                 .padding(.top, 8)
@@ -94,14 +60,19 @@ struct ContentView: View {
                     isExploded: viewModel.isExploded,
                     isCalibrating: isCalibrating,
                     hasBlownOnce: viewModel.hasBlownOnce,
+                    hasStartedRecording: hasStartedRecording,
                     onTapExplosion: {
                         viewModel.triggerExplosion()
-                    }
+                    },
+                    maxPSI: viewModel.maxPSI,
+                    isFinished: viewModel.isFinished
                 )
                 .frame(height: 320)
 
                 VStack(spacing: 12) {
-                    if (detector.isCalibrated && !viewModel.isFinished && !viewModel.isExploded) {
+                    if detector.isCalibrated && !viewModel.isFinished
+                        && !viewModel.isExploded
+                    {
                         BlowGaugeView(
                             blowIntensity: Double(detector.blowIntensity)
                         )
@@ -131,16 +102,20 @@ struct ContentView: View {
                         }
                     }
 
-                    HStack(spacing: 16) {
+                    HStack(alignment: .center, spacing: 16) {
                         if viewModel.hasBlownOnce && !viewModel.isFinished
                             && !viewModel.isExploded
                         {
                             Button(action: {
                                 viewModel.finish()
                             }) {
-                                Text("Finish")
+                                Image(systemName: "checkmark")
+                                    .symbolEffect(
+                                        .bounce.up.byLayer,
+                                        options: .repeat(.periodic(delay: 1.0))
+                                    )
+                                Text("Had enough?")
                                     .font(.headline)
-                                    .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.borderedProminent)
                             .tint(.blue)
@@ -149,16 +124,23 @@ struct ContentView: View {
                         if viewModel.isFinished || viewModel.isExploded {
                             Button(action: {
                                 viewModel.startNewSession()
+                                detector.startRecording()
                             }) {
-                                Text("Restart")
+                                Image(
+                                    systemName: "arrow.trianglehead.clockwise"
+                                )
+                                .symbolEffect(
+                                    .rotate.clockwise.byLayer,
+                                    options: .repeat(.continuous)
+                                )
+                                Text("Blow Again!")
                                     .font(.headline)
-                                    .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.bordered)
                         }
                     }
 
-                    if !detector.isCalibrated {
+                    if hasStartedRecording && !detector.isCalibrated {
                         HStack(spacing: 12) {
                             Image(systemName: "waveform.badge.microphone")
                                 .symbolEffect(
@@ -169,8 +151,19 @@ struct ContentView: View {
                                 .font(.footnote)
                                 .foregroundColor(.secondary)
                         }
-
                     }
+                }
+                if !hasStartedRecording && needsInitialSetup {
+                    Button(action: {
+                        hasStartedRecording = true
+                        needsInitialSetup = false
+                        viewModel.startNewSession()
+                        detector.startRecording()
+                    }) {
+                        Text("Start!")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
                 }
                 Spacer()
             }
@@ -189,12 +182,9 @@ struct ContentView: View {
                     isCalibrated: detector.isCalibrated
                 )
             }
-            .onAppear {
-                viewModel.startNewSession()
-            }
             .sheet(isPresented: $showHowToPlay) {
                 HowToPlay()
-                    .presentationDetents([.medium])
+                    .presentationDetents([.height(250)])
                     .background(.white)
             }
         }

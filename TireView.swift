@@ -5,7 +5,10 @@ struct TireView: View {
     let isExploded: Bool
     let isCalibrating: Bool
     let hasBlownOnce: Bool
+    let hasStartedRecording: Bool
     let onTapExplosion: (() -> Void)?
+    let maxPSI: Double
+    let isFinished: Bool
 
     @State private var rotationAngle: Double = 0
     @State private var isSpinning: Bool = false
@@ -17,6 +20,8 @@ struct TireView: View {
     @State private var tapResetTimer: Timer?
     @State private var bounceOffset: CGFloat = 0
     @State private var isParticleExplosion: Bool = false
+    @State private var explosionPhase: Int = 0
+    @State private var outerRingOpacity: Double = 1.0
 
     var shouldExplodeFromTaps: Bool {
         return tapCount >= 10
@@ -27,10 +32,32 @@ struct TireView: View {
             // Tire container
             GeometryReader { geo in
                 let baseSize = min(geo.size.width, geo.size.height) * 0.8
-                let scale = isExploded ? 1.05 : (0.9 + (progress * 0.35))
-                let tireImage = isExploded ? "tire-full-flat" : "tire-full"
+                let scale = isExploded ? 1.05 : (0.8 + (progress * 0.4))
+                let tireImage: String = {
+                    if !isExploded {
+                        return "tire-full"
+                    } else if explosionPhase == 1 {
+                        return "tire-full-semiflat"
+                    } else {
+                        return "tire-full-flat"
+                    }
+                }()
                 let tireBaseSize = isExploded ? baseSize * 0.95 : baseSize
                 ZStack {
+                    if !isExploded {
+                        Circle()
+                            .stroke(
+                                style: StrokeStyle(
+                                    lineWidth: 2,
+                                    dash: [5, 5]
+                                )
+                            )
+                            .foregroundColor(.gray.opacity(0.5))
+                            .frame(width: tireBaseSize, height: tireBaseSize)
+                            .scaleEffect(1.2)
+                            .opacity(outerRingOpacity)
+                    }
+
                     Image(tireImage)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
@@ -38,6 +65,7 @@ struct TireView: View {
                         .scaleEffect(scale * tappedScale)
                         .rotationEffect(.degrees(rotationAngle))
                         .offset(y: bounceOffset)
+                        .listRowInsets(EdgeInsets())
 
                     if isExploded {
                         Image("smoke")
@@ -71,16 +99,20 @@ struct TireView: View {
                 )
                 .animation(.easeOut(duration: 0.22), value: isExploded)
                 .onTapGesture {
-                    // Don't allow tap explosion if already exploded
-                    guard !isExploded else { return }
+                    // Don't allow tap explosion if already exploded, game hasn't started, or still calibrating
+                    guard !isExploded, hasStartedRecording, !isCalibrating
+                    else { return }
 
                     // Haptic feedback for tap
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    let impactFeedback = UIImpactFeedbackGenerator(
+                        style: .light
+                    )
                     impactFeedback.impactOccurred()
 
                     // Animate the tap
                     tappedScale = 1.1
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.6))
+                    {
                         tappedScale = 1.0
                     }
 
@@ -110,7 +142,18 @@ struct TireView: View {
                 }
                 .onAppear { updateRotationState() }
                 .onChange(of: isCalibrating) { updateRotationState() }
-                .onChange(of: hasBlownOnce) { updateRotationState() }
+                .onChange(of: hasBlownOnce) { oldValue, newValue in
+                    updateRotationState()
+                    if newValue && !oldValue {
+                        withAnimation(.easeOut(duration: 1.0).delay(3)) {
+                            outerRingOpacity = 0
+                        }
+                    } else if !newValue && oldValue {
+                        withAnimation(.easeIn(duration: 0.3)) {
+                            outerRingOpacity = 1.0
+                        }
+                    }
+                }
                 .onChange(of: isExploded) { oldValue, newValue in
                     updateRotationState()
                     if newValue {
@@ -118,6 +161,14 @@ struct TireView: View {
                         handleSmoke(for: newValue)
                     } else {
                         handleSmoke(for: newValue)
+                        explosionPhase = 0
+                    }
+                }
+                .onChange(of: isFinished) { oldValue, newValue in
+                    if newValue {
+                        withAnimation(.easeIn(duration: 0.3)) {
+                            outerRingOpacity = 1.0
+                        }
                     }
                 }
             }
@@ -138,19 +189,33 @@ struct TireView: View {
     private func triggerExplosionBounce() {
         // Trigger particle explosion
         isParticleExplosion = true
-        
+
         // Animate bounce up
         withAnimation(.easeOut(duration: 0.12)) {
             bounceOffset = -80
         }
-        
+
+        // Transition to semiflat phase
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            withAnimation(.easeInOut(duration: 0.08)) {
+                explosionPhase = 1
+            }
+        }
+
+        // Transition to fully flat phase
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.easeInOut(duration: 0.08)) {
+                explosionPhase = 2
+            }
+        }
+
         // Bounce back down
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) {
             withAnimation(.easeIn(duration: 0.15)) {
                 bounceOffset = 0
             }
         }
-        
+
         // Turn off particles after animation
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             isParticleExplosion = false
@@ -189,7 +254,10 @@ struct TireView: View {
         isExploded: false,
         isCalibrating: true,
         hasBlownOnce: false,
-        onTapExplosion: nil
+        hasStartedRecording: true,
+        onTapExplosion: nil,
+        maxPSI: 20,
+        isFinished: false
     )
     .frame(width: 300, height: 300)
 }
