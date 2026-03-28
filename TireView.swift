@@ -65,6 +65,7 @@ struct TireView: View {
                         .scaleEffect(scale * tappedScale)
                         .rotationEffect(.degrees(rotationAngle))
                         .offset(y: bounceOffset)
+                        .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 8)
                         .listRowInsets(EdgeInsets())
 
                     if isExploded {
@@ -145,7 +146,7 @@ struct TireView: View {
                 .onChange(of: hasBlownOnce) { oldValue, newValue in
                     updateRotationState()
                     if newValue && !oldValue {
-                        withAnimation(.easeOut(duration: 1.0).delay(3)) {
+                        withAnimation(.easeOut(duration: 1.0).delay(2.0)) {
                             outerRingOpacity = 0
                         }
                     } else if !newValue && oldValue {
