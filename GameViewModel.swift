@@ -14,11 +14,15 @@ final class GameViewModel {
 
     private let inflationRatePerSecond: Double = 15
     private let blowThreshold: Double = 0.05
+    private let deflationRatePerSecond: Double = 5
+    private let deflationDelay: Double = 1.0
+    private var timeSinceLastBlow: Double = 0
     private let sessionRange: ClosedRange<Double>
     private let userDefaults: UserDefaults
     private let highScoreKey = "HighScorePercent"
     private var explosionPlayer: AVAudioPlayer?
     private var backgroundMusicPlayer: AVAudioPlayer?
+    private var deflatingPlayer: AVAudioPlayer?
 
     init(
         range: ClosedRange<Double> = 18...32,
@@ -39,6 +43,7 @@ final class GameViewModel {
         isExploded = false
         scorePercent = 0
         hasBlownOnce = false
+        timeSinceLastBlow = 0
         HapticsManager.stopPressureHaptics()
     }
 
@@ -55,6 +60,8 @@ final class GameViewModel {
 
         if blowIntensity > blowThreshold {
             hasBlownOnce = true
+            timeSinceLastBlow = 0
+            stopDeflatingSound()
             let increment = blowIntensity * inflationRatePerSecond * deltaTime
             currentPSI += increment
             let progress = min(1, currentPSI / maxPSI)
@@ -63,6 +70,14 @@ final class GameViewModel {
                 triggerExplosion()
             }
         } else {
+            timeSinceLastBlow += deltaTime
+            if timeSinceLastBlow >= deflationDelay && currentPSI > 0 {
+                let deflation = deflationRatePerSecond * deltaTime
+                currentPSI = max(0, currentPSI - deflation)
+                playDeflatingSound()
+            } else {
+                stopDeflatingSound()
+            }
             HapticsManager.stopPressureHaptics()
         }
     }
@@ -87,7 +102,42 @@ final class GameViewModel {
         }
         currentPSI = maxPSI
         playExplosionSFX()
+        stopDeflatingSound()
         HapticsManager.explosion()
+    }
+
+    private func playDeflatingSound() {
+        guard
+            let url = Bundle.main.url(
+                forResource: "deflating",
+                withExtension: "mp3"
+            )
+        else {
+            print("deflating.mp3 not found in bundle")
+            return
+        }
+
+        do {
+            if deflatingPlayer == nil || deflatingPlayer?.url != url {
+                deflatingPlayer = try AVAudioPlayer(contentsOf: url)
+                deflatingPlayer?.numberOfLoops = -1
+                deflatingPlayer?.volume = 0.5
+                deflatingPlayer?.prepareToPlay()
+            }
+
+            if !(deflatingPlayer?.isPlaying ?? false) {
+                deflatingPlayer?.currentTime = 0
+                deflatingPlayer?.play()
+            }
+        } catch {
+            print("Failed to play deflating sound: \(error)")
+        }
+    }
+
+    private func stopDeflatingSound() {
+        if deflatingPlayer?.isPlaying == true {
+            deflatingPlayer?.stop()
+        }
     }
 
     // MARK: - Audio
