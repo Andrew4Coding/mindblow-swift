@@ -25,7 +25,7 @@ struct GameModeSelectionView: View {
                                 .font(.headline)
                         }
                         .onTapGesture {
-                            dismiss()
+                            dismiss()       
                             onRestart()
                             onSelect(mode)
                         }
