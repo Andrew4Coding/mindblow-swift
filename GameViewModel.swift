@@ -11,6 +11,10 @@ final class GameViewModel {
     var scorePercent: Double = 0
     var highScore: Double
     var hasBlownOnce: Bool = false
+    var gameMode: GameMode = .single
+    var currentPlayerIndex: Int = 0
+    var turnCount: Int = 0
+    var isLongPressing: Bool = false
 
     private let inflationRatePerSecond: Double = 15
     private let blowThreshold: Double = 0.05
@@ -23,6 +27,28 @@ final class GameViewModel {
     private var explosionPlayer: AVAudioPlayer?
     private var backgroundMusicPlayer: AVAudioPlayer?
     private var deflatingPlayer: AVAudioPlayer?
+
+    var isTwoPlayerMode: Bool {
+        gameMode == .twoPlayer
+    }
+
+    var currentPlayer: Int {
+        currentPlayerIndex + 1
+    }
+
+    var loserPlayer: Int {
+        currentPlayerIndex + 1
+    }
+
+    private let minPSIToPass: Double = 2.0
+
+    var canPass: Bool {
+        isTwoPlayerMode && hasBlownOnce && currentPSI >= minPSIToPass
+    }
+
+    var isOuterRingUnlocked: Bool {
+        !isTwoPlayerMode || turnCount >= 2
+    }
 
     init(
         range: ClosedRange<Double> = 18...32,
@@ -43,7 +69,10 @@ final class GameViewModel {
         isExploded = false
         scorePercent = 0
         hasBlownOnce = false
+        currentPlayerIndex = 0
+        turnCount = 0
         timeSinceLastBlow = 0
+        isLongPressing = false
         HapticsManager.stopPressureHaptics()
     }
 
@@ -58,11 +87,12 @@ final class GameViewModel {
             return
         }
 
-        if blowIntensity > blowThreshold {
+        if blowIntensity > blowThreshold || isLongPressing {
             hasBlownOnce = true
             timeSinceLastBlow = 0
             stopDeflatingSound()
-            let increment = blowIntensity * inflationRatePerSecond * deltaTime
+            let intensity = max(blowIntensity, isLongPressing ? 0.5 : 0)
+            let increment = intensity * inflationRatePerSecond * deltaTime
             currentPSI += increment
             let progress = min(1, currentPSI / maxPSI)
             HapticsManager.startPressureHaptics(progress: progress)
@@ -70,33 +100,44 @@ final class GameViewModel {
                 triggerExplosion()
             }
         } else {
-            timeSinceLastBlow += deltaTime
-            if timeSinceLastBlow >= deflationDelay && currentPSI > 0 {
-                let deflation = deflationRatePerSecond * deltaTime
-                currentPSI = max(0, currentPSI - deflation)
-                playDeflatingSound()
-            } else {
-                stopDeflatingSound()
+            if !isTwoPlayerMode {
+                timeSinceLastBlow += deltaTime
+                if timeSinceLastBlow >= deflationDelay && currentPSI > 0 {
+                    let deflation = deflationRatePerSecond * deltaTime
+                    currentPSI = max(0, currentPSI - deflation)
+                    playDeflatingSound()
+                } else {
+                    stopDeflatingSound()
+                }
             }
             HapticsManager.stopPressureHaptics()
         }
     }
 
     func finish() {
-        guard hasBlownOnce && !isFinished else { return }
-        withAnimation {
-            isFinished = true
-        }
-        HapticsManager.stopPressureHaptics()
-        scorePercent = min(1, currentPSI / maxPSI)
-        if scorePercent > highScore {
-            highScore = scorePercent
-            userDefaults.set(highScore, forKey: highScoreKey)
+        if isTwoPlayerMode {
+            guard canPass else { return }
+            currentPlayerIndex = currentPlayerIndex == 0 ? 1 : 0
+            hasBlownOnce = false
+            turnCount += 1
+            stopDeflatingSound()
+        } else {
+            guard hasBlownOnce && !isFinished else { return }
+            withAnimation {
+                isFinished = true
+            }
+            HapticsManager.stopPressureHaptics()
+            scorePercent = min(1, currentPSI / maxPSI)
+            if scorePercent > highScore {
+                highScore = scorePercent
+                userDefaults.set(highScore, forKey: highScoreKey)
+            }
         }
     }
 
     func triggerExplosion() {
         isExploded = true
+        isLongPressing = false
         withAnimation {
             isFinished = true
         }

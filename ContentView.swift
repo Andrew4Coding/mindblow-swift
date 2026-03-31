@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var isHighScore = false
     @State private var hasStartedRecording = false
     @State private var needsInitialSetup = true
+    @State private var showGameModeSelection = true
     @Environment(\.scenePhase) var scenePhase
 
     var body: some View {
@@ -44,8 +45,29 @@ struct ContentView: View {
                     Button(action: {
                         showHowToPlay = true
                     }) {
-                        Spacer()
                         Image(systemName: "questionmark.circle.fill")
+                            .font(.title2)
+                            .foregroundColor(.blue)
+                    }
+
+                    Spacer()
+
+                    if viewModel.isTwoPlayerMode && !viewModel.isExploded {
+                        Text("Player \(viewModel.currentPlayer)")
+                            .font(.headline.bold())
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.blue)
+                            .cornerRadius(20)
+                    }
+
+                    Spacer()
+
+                    Button(action: {
+                        showGameModeSelection = true
+                    }) {
+                        Image(systemName: "arrow.trianglehead.2.counterclockwise")
                             .font(.title2)
                             .foregroundColor(.blue)
                     }
@@ -65,7 +87,9 @@ struct ContentView: View {
                         viewModel.triggerExplosion()
                     },
                     maxPSI: viewModel.maxPSI,
-                    isFinished: viewModel.isFinished
+                    isFinished: viewModel.isFinished,
+                    currentPlayer: viewModel.isTwoPlayerMode ? viewModel.currentPlayer : nil,
+                    isOuterRingLocked: !viewModel.isOuterRingUnlocked
                 )
                 .frame(height: 320)
 
@@ -80,10 +104,17 @@ struct ContentView: View {
 
                     VStack(spacing: 8) {
                         if viewModel.isExploded {
-                            Text("Boom! Game Over")
-                                .font(.title2.bold())
-                                .foregroundColor(.red)
-                                .transition(.scale.combined(with: .opacity))
+                            if viewModel.isTwoPlayerMode {
+                                Text("Player \(viewModel.loserPlayer) Lose!")
+                                    .font(.title2.bold())
+                                    .foregroundColor(.red)
+                                    .transition(.scale.combined(with: .opacity))
+                            } else {
+                                Text("Boom! Game Over")
+                                    .font(.title2.bold())
+                                    .foregroundColor(.red)
+                                    .transition(.scale.combined(with: .opacity))
+                            }
                         } else if viewModel.isFinished {
                             VStack(spacing: 4) {
                                 Text(
@@ -103,7 +134,25 @@ struct ContentView: View {
                     }
 
                     HStack(alignment: .center, spacing: 16) {
-                        if viewModel.hasBlownOnce && !viewModel.isFinished
+                        if viewModel.isTwoPlayerMode {
+                            if viewModel.canPass && !viewModel.isFinished
+                                && !viewModel.isExploded
+                            {
+                                Button(action: {
+                                    viewModel.finish()
+                                }) {
+                                    Image(systemName: "checkmark")
+                                        .symbolEffect(
+                                            .bounce.up.byLayer,
+                                            options: .repeat(.periodic(delay: 1.0))
+                                        )
+                                    Text("Pass")
+                                        .font(.headline)
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .tint(.blue)
+                            }
+                        } else if viewModel.hasBlownOnce && !viewModel.isFinished
                             && !viewModel.isExploded
                         {
                             Button(action: {
@@ -189,6 +238,19 @@ struct ContentView: View {
             }
         }
         .overlay(ConfettiView(isPresented: $isHighScore))
+        .sheet(isPresented: $showGameModeSelection) {
+            GameModeSelectionView { mode in
+                withAnimation(.easeOut) {
+                    viewModel.gameMode = mode
+                }
+            } onRestart: {
+                viewModel.startNewSession()
+                detector.startRecording()
+            }
+            .presentationDetents([.height(300)])
+            .background(.white)
+            .interactiveDismissDisabled()
+        }
     }
 
     private func triggerShake() {

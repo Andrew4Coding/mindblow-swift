@@ -9,23 +9,20 @@ struct TireView: View {
     let onTapExplosion: (() -> Void)?
     let maxPSI: Double
     let isFinished: Bool
+    let currentPlayer: Int?
+    let isOuterRingLocked: Bool
 
     @State private var rotationAngle: Double = 0
     @State private var isSpinning: Bool = false
     @State private var smokeOpacity: Double = 0
     @State private var smokeOffsetLeft: CGFloat = 0
     @State private var smokeOffsetRight: CGFloat = 0
-    @State private var tappedScale: CGFloat = 1.0
-    @State private var tapCount: Int = 0
-    @State private var tapResetTimer: Timer?
     @State private var bounceOffset: CGFloat = 0
     @State private var isParticleExplosion: Bool = false
     @State private var explosionPhase: Int = 0
     @State private var outerRingOpacity: Double = 1.0
-
-    var shouldExplodeFromTaps: Bool {
-        return tapCount >= 10
-    }
+    @State private var hasOuterRingFaded: Bool = false
+    @State private var isLongPressing: Bool = false
 
     var body: some View {
         ZStack {
@@ -62,7 +59,7 @@ struct TireView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: tireBaseSize, height: tireBaseSize)
-                        .scaleEffect(scale * tappedScale)
+                        .scaleEffect(scale)
                         .rotationEffect(.degrees(rotationAngle))
                         .offset(y: bounceOffset)
                         .shadow(color: .black.opacity(0.3), radius: 12, x: 0, y: 8)
@@ -99,59 +96,26 @@ struct TireView: View {
                     value: progress
                 )
                 .animation(.easeOut(duration: 0.22), value: isExploded)
-                .onTapGesture {
-                    // Don't allow tap explosion if already exploded, game hasn't started, or still calibrating
-                    guard !isExploded, hasStartedRecording, !isCalibrating
-                    else { return }
-
-                    // Haptic feedback for tap
-                    let impactFeedback = UIImpactFeedbackGenerator(
-                        style: .light
-                    )
-                    impactFeedback.impactOccurred()
-
-                    // Animate the tap
-                    tappedScale = 1.1
-                    withAnimation(.spring(response: 0.4, dampingFraction: 0.6))
-                    {
-                        tappedScale = 1.0
-                    }
-
-                    // Increment tap count
-                    tapCount += 1
-
-                    // Reset timer if it exists
-                    tapResetTimer?.invalidate()
-
-                    // Check if reached 10 taps
-                    if tapCount >= 10 {
-                        tapCount = 0  // Reset for future
-                        tapResetTimer?.invalidate()
-                        tapResetTimer = nil
-                        onTapExplosion?()
-                        return
-                    }
-
-                    // Set timer to reset tap count after 2 seconds of inactivity
-                    tapResetTimer = Timer.scheduledTimer(
-                        withTimeInterval: 2.0,
-                        repeats: false
-                    ) { _ in
-                        tapCount = 0
-                        tapResetTimer = nil
-                    }
-                }
                 .onAppear { updateRotationState() }
                 .onChange(of: isCalibrating) { updateRotationState() }
+                .onChange(of: isOuterRingLocked) { oldValue, newValue in
+                    if newValue && !oldValue {
+                        hasOuterRingFaded = false
+                        outerRingOpacity = 1.0
+                    }
+                }
                 .onChange(of: hasBlownOnce) { oldValue, newValue in
                     updateRotationState()
-                    if newValue && !oldValue {
-                        withAnimation(.easeOut(duration: 1.0).delay(2.0)) {
-                            outerRingOpacity = 0
-                        }
-                    } else if !newValue && oldValue {
-                        withAnimation(.easeIn(duration: 0.3)) {
-                            outerRingOpacity = 1.0
+                    if !isOuterRingLocked && !hasOuterRingFaded {
+                        if newValue && !oldValue {
+                            withAnimation(.easeOut(duration: 1.0).delay(2.0)) {
+                                outerRingOpacity = 0
+                            }
+                            hasOuterRingFaded = true
+                        } else if !newValue && oldValue {
+                            withAnimation(.easeIn(duration: 0.3)) {
+                                outerRingOpacity = 1.0
+                            }
                         }
                     }
                 }
@@ -258,7 +222,9 @@ struct TireView: View {
         hasStartedRecording: true,
         onTapExplosion: nil,
         maxPSI: 20,
-        isFinished: false
+        isFinished: false,
+        currentPlayer: nil,
+        isOuterRingLocked: false
     )
     .frame(width: 300, height: 300)
 }
