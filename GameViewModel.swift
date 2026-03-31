@@ -8,6 +8,7 @@ final class GameViewModel {
     var currentPSI: Double = 0
     var isFinished: Bool = false
     var isExploded: Bool = false
+    var didExplode: Bool = false
     var scorePercent: Double = 0
     var highScore: Double
     var hasBlownOnce: Bool = false
@@ -67,6 +68,7 @@ final class GameViewModel {
         currentPSI = 0
         isFinished = false
         isExploded = false
+        didExplode = false
         scorePercent = 0
         hasBlownOnce = false
         currentPlayerIndex = 0
@@ -137,6 +139,7 @@ final class GameViewModel {
 
     func triggerExplosion() {
         isExploded = true
+        didExplode = true
         isLongPressing = false
         withAnimation {
             isFinished = true

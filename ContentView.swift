@@ -17,6 +17,8 @@ struct ContentView: View {
     @State private var hasStartedRecording = false
     @State private var needsInitialSetup = true
     @State private var showGameModeSelection = true
+    @State private var showSaveScoreSheet = false
+    @State private var showLeaderboard = false
     @Environment(\.scenePhase) var scenePhase
 
     var body: some View {
@@ -48,6 +50,16 @@ struct ContentView: View {
                         Image(systemName: "questionmark.circle.fill")
                             .font(.title2)
                             .foregroundColor(.blue)
+                    }
+
+                    if !viewModel.isTwoPlayerMode && !LeaderboardManager.shared.getEntries().isEmpty {
+                        Button(action: {
+                            showLeaderboard = true
+                        }) {
+                            Image(systemName: "trophy.fill")
+                                .font(.title2)
+                                .foregroundColor(.yellow)
+                        }
                     }
 
                     Spacer()
@@ -186,6 +198,18 @@ struct ContentView: View {
                                     .font(.headline)
                             }
                             .buttonStyle(.bordered)
+                            
+                            if !viewModel.isTwoPlayerMode && !viewModel.didExplode {
+                                Button(action: {
+                                    showSaveScoreSheet = true
+                                }) {
+                                    Image(systemName: "list.clipboard")
+                                    Text("Save Score")
+                                        .font(.headline)
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.green)
+                            }
                         }
                     }
 
@@ -250,6 +274,17 @@ struct ContentView: View {
             .presentationDetents([.height(300)])
             .background(.white)
             .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $showSaveScoreSheet) {
+            SaveScoreView(score: viewModel.scorePercent) { entry in
+                if entry.score >= viewModel.highScore {
+                    isHighScore = true
+                }
+            }
+        }
+        .sheet(isPresented: $showLeaderboard) {
+            LeaderboardView()
+            .background(.white)
         }
     }
 
