@@ -270,6 +270,7 @@ struct ContentView: View {
                 },
                 onRestart: {
                     viewModel.startNewSession()
+                    hasStartedRecording = true
                     detector.startRecording()
                 }
             )
