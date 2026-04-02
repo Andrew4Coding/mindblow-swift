@@ -13,7 +13,6 @@ struct GameModeSelectionView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 32) {
-                Spacer()
                 HStack(spacing: 20) {
                     ForEach(GameMode.allCases, id: \.self) { mode in
                         VStack (spacing: 12) {
@@ -25,14 +24,13 @@ struct GameModeSelectionView: View {
                                 .font(.headline)
                         }
                         .onTapGesture {
-                            dismiss()       
+                            dismiss()
                             onRestart()
                             onSelect(mode)
                         }
                     }
                 }
                 .padding(.horizontal, 40)
-                .padding(.bottom, 40)
                 Spacer()
             }
             .navigationTitle("Choose Game Mode")
@@ -42,5 +40,8 @@ struct GameModeSelectionView: View {
 }
 
 #Preview {
-    GameModeSelectionView { _ in } onRestart: { }
+    GameModeSelectionView(
+        onSelect: { _ in },
+        onRestart: { }
+    )
 }

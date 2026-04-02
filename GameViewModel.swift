@@ -2,6 +2,20 @@ import AVFoundation
 import Foundation
 import SwiftUI
 
+enum TireSkin: String, CaseIterable, Codable {
+    case car = "Car"
+    case truck = "Truck"
+    case motor = "Motorcycle"
+
+    var imagePrefix: String {
+        switch self {
+        case .car: return "tire-full"
+        case .truck: return "truck-tire-full"
+        case .motor: return "motor-tire-full"
+        }
+    }
+}
+
 @Observable
 final class GameViewModel {
     var maxPSI: Double
@@ -16,7 +30,17 @@ final class GameViewModel {
     var currentPlayerIndex: Int = 0
     var turnCount: Int = 0
     var isLongPressing: Bool = false
+    var selectedTireSkin: TireSkin = .car
 
+    var pumpMultiplier: Double {
+        switch selectedTireSkin {
+        case .truck: return 0.6
+        case .motor: return 1.4
+        case .car: return 1.0
+        }
+    }
+
+    private let tireSkinKey = "SelectedTireSkin"
     private let inflationRatePerSecond: Double = 15
     private let blowThreshold: Double = 0.05
     private let deflationRatePerSecond: Double = 5
@@ -60,6 +84,10 @@ final class GameViewModel {
         self.highScore = userDefaults.double(forKey: highScoreKey)
         self.maxPSI = Double.random(in: range)
         
+        if let savedSkin = try? JSONDecoder().decode(TireSkin.self, from: userDefaults.data(forKey: tireSkinKey) ?? Data()) {
+            self.selectedTireSkin = savedSkin
+        }
+        
         startBackgroundMusic()
     }
 
@@ -78,6 +106,13 @@ final class GameViewModel {
         HapticsManager.stopPressureHaptics()
     }
 
+    func setTireSkin(_ skin: TireSkin) {
+        selectedTireSkin = skin
+        if let data = try? JSONEncoder().encode(skin) {
+            userDefaults.set(data, forKey: tireSkinKey)
+        }
+    }
+
     func update(blowIntensity: Double, deltaTime: Double, isCalibrated: Bool) {
         guard isCalibrated else {
             HapticsManager.stopPressureHaptics()
@@ -94,7 +129,8 @@ final class GameViewModel {
             timeSinceLastBlow = 0
             stopDeflatingSound()
             let intensity = max(blowIntensity, isLongPressing ? 0.5 : 0)
-            let increment = intensity * inflationRatePerSecond * deltaTime
+            let effectiveIntensity = intensity * pumpMultiplier
+            let increment = effectiveIntensity * inflationRatePerSecond * deltaTime
             currentPSI += increment
             let progress = min(1, currentPSI / maxPSI)
             HapticsManager.startPressureHaptics(progress: progress)

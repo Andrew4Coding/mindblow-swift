@@ -15,10 +15,10 @@ struct ContentView: View {
     @State private var shakeOffset: CGFloat = 0
     @State private var isHighScore = false
     @State private var hasStartedRecording = false
-    @State private var needsInitialSetup = true
     @State private var showGameModeSelection = true
     @State private var showSaveScoreSheet = false
     @State private var showLeaderboard = false
+    @State private var showSkinPicker = false
     @Environment(\.scenePhase) var scenePhase
 
     var body: some View {
@@ -76,6 +76,16 @@ struct ContentView: View {
 
                     Spacer()
 
+                    if !hasStartedRecording || viewModel.isFinished || viewModel.isExploded {
+                        Button(action: {
+                            showSkinPicker = true
+                        }) {
+                            Image(systemName: "tire")
+                                .font(.title2)
+                                .foregroundColor(.blue)
+                        }
+                    }
+
                     Button(action: {
                         showGameModeSelection = true
                     }) {
@@ -101,7 +111,8 @@ struct ContentView: View {
                     maxPSI: viewModel.maxPSI,
                     isFinished: viewModel.isFinished,
                     currentPlayer: viewModel.isTwoPlayerMode ? viewModel.currentPlayer : nil,
-                    isOuterRingLocked: !viewModel.isOuterRingUnlocked
+                    isOuterRingLocked: !viewModel.isOuterRingUnlocked,
+                    tireSkin: viewModel.selectedTireSkin
                 )
                 .frame(height: 320)
 
@@ -226,18 +237,6 @@ struct ContentView: View {
                         }
                     }
                 }
-                if !hasStartedRecording && needsInitialSetup {
-                    Button(action: {
-                        hasStartedRecording = true
-                        needsInitialSetup = false
-                        viewModel.startNewSession()
-                        detector.startRecording()
-                    }) {
-                        Text("Start!")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.blue)
-                }
                 Spacer()
             }
             .padding(20)
@@ -263,17 +262,30 @@ struct ContentView: View {
         }
         .overlay(ConfettiView(isPresented: $isHighScore))
         .sheet(isPresented: $showGameModeSelection) {
-            GameModeSelectionView { mode in
-                withAnimation(.easeOut) {
-                    viewModel.gameMode = mode
+            GameModeSelectionView(
+                onSelect: { mode in
+                    withAnimation(.easeOut) {
+                        viewModel.gameMode = mode
+                    }
+                },
+                onRestart: {
+                    viewModel.startNewSession()
+                    detector.startRecording()
                 }
-            } onRestart: {
-                viewModel.startNewSession()
-                detector.startRecording()
-            }
-            .presentationDetents([.height(300)])
+            )
+            .presentationDetents([.height(350)])
             .background(.white)
             .interactiveDismissDisabled()
+        }
+        .sheet(isPresented: $showSkinPicker) {
+            SkinModal(
+                currentSkin: viewModel.selectedTireSkin,
+                onSelect: { skin in
+                    viewModel.setTireSkin(skin)
+                }
+            )
+            .presentationDetents([.height(250)])
+            .background(.white)
         }
         .sheet(isPresented: $showSaveScoreSheet) {
             SaveScoreView(score: viewModel.scorePercent) { entry in

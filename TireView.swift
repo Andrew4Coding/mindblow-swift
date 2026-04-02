@@ -11,6 +11,7 @@ struct TireView: View {
     let isFinished: Bool
     let currentPlayer: Int?
     let isOuterRingLocked: Bool
+    var tireSkin: TireSkin = .car
 
     @State private var rotationAngle: Double = 0
     @State private var isSpinning: Bool = false
@@ -32,11 +33,11 @@ struct TireView: View {
                 let scale = isExploded ? 1.05 : (0.8 + (progress * 0.4))
                 let tireImage: String = {
                     if !isExploded {
-                        return "tire-full"
+                        return tireSkin.imagePrefix
                     } else if explosionPhase == 1 {
-                        return "tire-full-semiflat"
+                        return tireSkin.imagePrefix.replacingOccurrences(of: "full", with: "semiflat")
                     } else {
-                        return "tire-full-flat"
+                        return tireSkin.imagePrefix.replacingOccurrences(of: "full", with: "flat")
                     }
                 }()
                 let tireBaseSize = isExploded ? baseSize * 0.95 : baseSize
@@ -224,7 +225,8 @@ struct TireView: View {
         maxPSI: 20,
         isFinished: false,
         currentPlayer: nil,
-        isOuterRingLocked: false
+        isOuterRingLocked: false,
+        tireSkin: .car
     )
     .frame(width: 300, height: 300)
 }
