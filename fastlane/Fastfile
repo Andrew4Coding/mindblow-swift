@@ -1,0 +1,304 @@
+# MindBlow — release automation
+#
+# Auth: App Store Connect API key (recommended). Set in fastlane/.env (gitignored):
+#   ASC_KEY_ID, ASC_ISSUER_ID, and either ASC_KEY_PATH (path to AuthKey_XXXX.p8)
+#   or ASC_KEY_CONTENT (base64 / raw p8 contents, for CI).
+#
+# Signing: `match` if MATCH_GIT_URL is set, otherwise Xcode automatic signing
+#   with --allowProvisioningUpdates.
+#
+# Common commands:
+#   bundle exec fastlane ios beta            # build + upload to TestFlight (internal only)
+#   bundle exec fastlane ios beta_external   # build + upload + submit to Beta App Review (public link)
+#   bundle exec fastlane ios release          # build + upload binary, metadata; submit for review
+#   bundle exec fastlane ios metadata         # push text metadata only (no build)
+#   bundle exec fastlane ios build            # local signed .ipa, no upload
+#   bundle exec fastlane ios bump             # set build number to latest TestFlight + 1
+
+default_platform(:ios)
+
+WORKSPACE_DIR   = File.expand_path("..", __dir__)
+XCODEPROJ       = "MindBlow.xcodeproj"
+SCHEME          = "MindBlow"
+APP_IDENTIFIER  = "com.absolutecinema.mindblow"
+OUTPUT_DIR      = File.join(WORKSPACE_DIR, "build", "fastlane")
+
+platform :ios do
+  before_all do
+    ENV["FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT"] ||= "120"
+  end
+
+  # ---------------------------------------------------------------------------
+  # Public lanes
+  # ---------------------------------------------------------------------------
+
+  desc "Build + upload a build to TestFlight"
+  lane :beta do |options|
+    api_key = load_api_key
+    regenerate_project
+    bump(options.merge(silent: true))
+    setup_signing(type: "appstore", api_key: api_key)
+    build_ipa(api_key: api_key)
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: APP_IDENTIFIER,
+      ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
+      skip_waiting_for_build_processing: options.fetch(:wait, false) ? false : true,
+      distribute_external: false,
+      notify_external_testers: false,
+      changelog: testflight_changelog
+    )
+
+    clean_build_artifacts
+  end
+
+  desc "Build + upload + submit to Beta App Review for external testing (public link)"
+  lane :beta_external do |options|
+    api_key = load_api_key
+    regenerate_project
+    bump(options.merge(silent: true))
+    setup_signing(type: "appstore", api_key: api_key)
+    build_ipa(api_key: api_key)
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: APP_IDENTIFIER,
+      ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
+      changelog: testflight_changelog,
+      distribute_external: true,
+      notify_external_testers: options.fetch(:notify, true),
+      groups: [options.fetch(:group, "Public Beta")],
+      beta_app_description: beta_app_description,
+      beta_app_feedback_email: beta_contact_email,
+      demo_account_required: false,
+      beta_app_review_info: beta_review_info,
+      submit_beta_review: true,
+      wait_for_uploaded_build: true
+    )
+
+    clean_build_artifacts
+  end
+
+  desc "Build + upload binary and metadata to App Store; submit for review"
+  lane :release do |options|
+    api_key = load_api_key
+    regenerate_project
+
+    precheck(default_rule_level: :warn) rescue UI.important("precheck skipped")
+
+    bump(options.merge(silent: true))
+    setup_signing(type: "appstore", api_key: api_key)
+    build_ipa(api_key: api_key)
+
+    deliver(
+      api_key: api_key,
+      app_identifier: APP_IDENTIFIER,
+      ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
+      skip_screenshots: !Dir.glob(File.join(__dir__, "screenshots", "**", "*.png")).any?,
+      skip_metadata: false,
+      submit_for_review: options.fetch(:submit, false),
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      submission_information: {
+        add_id_info_uses_idfa: false,
+        export_compliance_uses_encryption: false
+      },
+      force: options.fetch(:force, false) # skip the HTML preview / confirmation prompt
+    )
+
+    clean_build_artifacts
+  end
+
+  desc "Push text metadata only (no binary, no screenshots)"
+  lane :metadata do
+    deliver(
+      api_key: load_api_key,
+      app_identifier: APP_IDENTIFIER,
+      skip_binary_upload: true,
+      skip_screenshots: true,
+      skip_metadata: false,
+      force: true
+    )
+  end
+
+  desc "Upload screenshots only (drop PNGs in fastlane/screenshots/<locale>/)"
+  lane :screenshots do
+    deliver(
+      api_key: load_api_key,
+      app_identifier: APP_IDENTIFIER,
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_screenshots: false,
+      overwrite_screenshots: true,
+      force: true
+    )
+  end
+
+  desc "Build a signed .ipa locally (no upload)"
+  lane :build do
+    api_key = load_api_key(optional: true)
+    regenerate_project
+    setup_signing(type: "appstore", api_key: api_key)
+    build_ipa(api_key: api_key)
+    UI.success("IPA: #{lane_context[SharedValues::IPA_OUTPUT_PATH]}")
+  end
+
+  desc "Set CFBundleVersion to (latest TestFlight build + 1)"
+  lane :bump do |options|
+    api_key = load_api_key
+    latest = latest_testflight_build_number(
+      api_key: api_key,
+      app_identifier: APP_IDENTIFIER,
+      initial_build_number: 0
+    )
+    next_build = latest.to_i + 1
+    update_yaml_build_number(next_build)
+    regenerate_project
+    UI.success("Build number → #{next_build} (marketing #{marketing_version})") unless options[:silent]
+  end
+
+  desc "Register app IDs / sync signing certificates & profiles (match)"
+  lane :register do
+    api_key = load_api_key
+    setup_signing(type: "appstore", api_key: api_key, readonly: false, force_register: true)
+  end
+
+  desc "Download dSYMs from App Store Connect for crash symbolication"
+  lane :dsyms do
+    download_dsyms(
+      api_key: load_api_key,
+      app_identifier: APP_IDENTIFIER,
+      version: marketing_version
+    )
+    clean_build_artifacts
+  end
+
+  # ---------------------------------------------------------------------------
+  # Helpers
+  # ---------------------------------------------------------------------------
+
+  desc "Regenerate the Xcode project from project.yml"
+  private_lane :regenerate_project do
+    Dir.chdir(WORKSPACE_DIR) do
+      if `which xcodegen`.strip.empty?
+        UI.user_error!("xcodegen not found — install with `brew install xcodegen`")
+      end
+      sh("xcodegen generate")
+    end
+  end
+
+  private_lane :build_ipa do |options|
+    build_app(
+      project: File.join(WORKSPACE_DIR, XCODEPROJ),
+      scheme: SCHEME,
+      configuration: "Release",
+      output_directory: OUTPUT_DIR,
+      output_name: "MindBlow.ipa",
+      clean: true,
+      export_method: "app-store",
+      xcargs: match_configured? ? nil : "-allowProvisioningUpdates",
+      export_options: {
+        provisioningProfiles: match_configured? ? {
+          APP_IDENTIFIER => "match AppStore #{APP_IDENTIFIER}"
+        } : nil
+      }.compact
+    )
+  end
+
+  private_lane :setup_signing do |options|
+    next unless match_configured?
+
+    api_key = options[:api_key]
+    match(
+      type: options.fetch(:type, "appstore"),
+      app_identifier: APP_IDENTIFIER,
+      git_url: ENV["MATCH_GIT_URL"],
+      api_key: api_key,
+      readonly: options.fetch(:readonly, ENV["CI"] ? true : false),
+      force_for_new_devices: false
+    )
+  end
+
+  def match_configured?
+    !(ENV["MATCH_GIT_URL"] || "").empty?
+  end
+
+  def load_api_key(optional: false)
+    key_id    = ENV["ASC_KEY_ID"]
+    issuer_id = ENV["ASC_ISSUER_ID"]
+    key_path  = ENV["ASC_KEY_PATH"]
+    key_body  = ENV["ASC_KEY_CONTENT"]
+
+    if key_id.to_s.empty? || issuer_id.to_s.empty? || (key_path.to_s.empty? && key_body.to_s.empty?)
+      return nil if optional
+      UI.user_error!("Missing App Store Connect API key env vars. Set ASC_KEY_ID, ASC_ISSUER_ID and ASC_KEY_PATH (or ASC_KEY_CONTENT). See fastlane/.env.default")
+    end
+
+    app_store_connect_api_key(
+      key_id: key_id,
+      issuer_id: issuer_id,
+      key_filepath: key_path.to_s.empty? ? nil : File.expand_path(key_path, WORKSPACE_DIR),
+      key_content: key_body.to_s.empty? ? nil : key_body,
+      is_key_content_base64: !key_body.to_s.empty? && key_body.match?(/\A[A-Za-z0-9+\/=\s]+\z/) && !key_body.include?("PRIVATE KEY"),
+      in_house: false
+    )
+  end
+
+  # --- project.yml version helpers ------------------------------------------
+
+  def project_yaml_path
+    File.join(WORKSPACE_DIR, "project.yml")
+  end
+
+  def marketing_version
+    require "yaml"
+    YAML.load_file(project_yaml_path).dig("targets", "MindBlow", "settings", "base", "MARKETING_VERSION").to_s
+  end
+
+  def update_yaml_build_number(number)
+    path = project_yaml_path
+    text = File.read(path)
+    updated = text.gsub(/CURRENT_PROJECT_VERSION:\s*.+/, "CURRENT_PROJECT_VERSION: #{number}")
+    UI.user_error!("Could not find CURRENT_PROJECT_VERSION in project.yml") if updated == text && !text.include?("CURRENT_PROJECT_VERSION: #{number}")
+    File.write(path, updated)
+  end
+
+  def testflight_changelog
+    notes = File.join(__dir__, "metadata", "en-US", "release_notes.txt")
+    File.exist?(notes) ? File.read(notes).strip : "Bug fixes and improvements."
+  end
+
+  # --- TestFlight external / Beta App Review -------------------------------
+
+  # Public-facing feedback address. Override with BETA_REVIEW_EMAIL in fastlane/.env.
+  def beta_contact_email
+    ENV["BETA_REVIEW_EMAIL"].to_s.empty? ? "andrewdevitoaryo@gmail.com" : ENV["BETA_REVIEW_EMAIL"]
+  end
+
+  def beta_app_description
+    desc = File.join(__dir__, "metadata", "en-US", "description.txt")
+    text = File.exist?(desc) ? File.read(desc).strip.split("\n\n").first.to_s.strip : ""
+    text.empty? ? "Mind Blow — blow into your phone to inflate the tire, but don't let it pop." : text
+  end
+
+  # Contact shown to Apple's beta reviewers only (never public). Phone must be
+  # set as BETA_REVIEW_PHONE in fastlane/.env — it is kept out of git.
+  def beta_review_info
+    phone = ENV["BETA_REVIEW_PHONE"].to_s.strip
+    UI.user_error!("Set BETA_REVIEW_PHONE in fastlane/.env before submitting for Beta App Review") if phone.empty?
+    {
+      contact_email: beta_contact_email,
+      contact_first_name: ENV["BETA_REVIEW_FIRST_NAME"].to_s.empty? ? "Andrew" : ENV["BETA_REVIEW_FIRST_NAME"],
+      contact_last_name: ENV["BETA_REVIEW_LAST_NAME"].to_s.empty? ? "Devito Aryo" : ENV["BETA_REVIEW_LAST_NAME"],
+      contact_phone: phone,
+      notes: "Open the app, choose a game mode and allow microphone access, then blow toward the bottom of the phone to inflate the tire. If the microphone is denied, use the Hold to Inflate button."
+    }
+  end
+
+  # ---------------------------------------------------------------------------
+
+  error do |lane, exception|
+    clean_build_artifacts
+  end
+end

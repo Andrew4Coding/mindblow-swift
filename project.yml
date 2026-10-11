@@ -1,0 +1,105 @@
+name: MindBlow
+
+options:
+  bundleIdPrefix: com.absolutecinema
+  createIntermediateGroups: true
+  developmentLanguage: en
+  deploymentTarget:
+    iOS: "26.0"
+
+settings:
+  base:
+    ALWAYS_SEARCH_USER_PATHS: NO
+    ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS: YES
+    DEVELOPMENT_TEAM: "92QV2QPDKA"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+    SDKROOT: iphoneos
+    SWIFT_VERSION: "6.0"
+  configs:
+    Debug:
+      ENABLE_TESTABILITY: YES
+      ONLY_ACTIVE_ARCH: YES
+      SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+    Release:
+      SWIFT_COMPILATION_MODE: wholemodule
+      VALIDATE_PRODUCT: YES
+
+schemes:
+  MindBlow:
+    build:
+      targets:
+        MindBlow: all
+        MindBlowTests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets:
+        - MindBlowTests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+targets:
+  MindBlow:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Core
+      - path: Features
+      - path: Models
+      - path: UI
+      - path: Resources
+      - path: AppIcon.icon
+    info:
+      path: MindBlow-Info.plist
+      properties:
+        CFBundleDisplayName: Mind Blow
+        CFBundleShortVersionString: "$(MARKETING_VERSION)"
+        CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
+        CFBundleLocalizations: [en, id]
+        ITSAppUsesNonExemptEncryption: false
+        UIAppFonts: [Gaegu-Regular.ttf, Gaegu-Light.ttf, Gaegu-Bold.ttf]
+        NSMicrophoneUsageDescription: "Mind Blow listens to your breath through the microphone to inflate the tire. Audio is analyzed live and never recorded or stored."
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        CODE_SIGN_STYLE: Automatic
+        CURRENT_PROJECT_VERSION: 1
+        DEVELOPMENT_TEAM: "92QV2QPDKA"
+        ENABLE_PREVIEWS: YES
+        GENERATE_INFOPLIST_FILE: NO
+        MARKETING_VERSION: "1.0"
+        PRODUCT_BUNDLE_IDENTIFIER: com.absolutecinema.mindblow
+        PRODUCT_NAME: "$(TARGET_NAME)"
+        STRING_CATALOG_GENERATE_SYMBOLS: YES
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor
+        SWIFT_EMIT_LOC_STRINGS: YES
+        SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY: YES
+        TARGETED_DEVICE_FAMILY: "1"
+
+  MindBlowTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: Tests
+    dependencies:
+      - target: MindBlow
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.absolutecinema.mindblow.tests
+        SWIFT_APPROACHABLE_CONCURRENCY: YES
+        SWIFT_DEFAULT_ACTOR_ISOLATION: MainActor

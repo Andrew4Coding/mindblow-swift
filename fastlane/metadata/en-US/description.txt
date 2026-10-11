@@ -1,0 +1,12 @@
+Mind Blow is a quick party game you play with your breath. Blow toward the bottom of your phone to inflate the tire, then stop before it bursts. The microphone hears your breath live, so no tapping is needed.
+
+Play solo and chase a high score you can save to a local leaderboard, or hand the phone to a friend and take turns. Whoever pops the tire loses.
+
+• Blow-powered controls that calibrate to your room's background noise
+• Single-player and two-player modes
+• Car, truck and motorcycle tires that each inflate differently
+• Haptics, sound and music you can switch off in Settings
+• Hold to Inflate button when blowing isn't an option
+• English and Indonesian
+
+Audio from the microphone is analyzed on your device while you play. It is never recorded, stored or sent anywhere.

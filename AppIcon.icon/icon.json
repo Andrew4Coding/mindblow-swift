@@ -1,0 +1,49 @@
+{
+  "fill" : {
+    "solid" : "srgb:1.00000,0.82353,0.24706,1.00000"
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "image-name" : "explosion.svg",
+          "name" : "explosion"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.5
+      }
+    },
+    {
+      "layers" : [
+        {
+          "glass" : true,
+          "image-name" : "crack.svg",
+          "name" : "crack"
+        },
+        {
+          "blend-mode" : "normal",
+          "glass" : true,
+          "image-name" : "tire.svg",
+          "name" : "tire"
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : false,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : "shared"
+  }
+}
