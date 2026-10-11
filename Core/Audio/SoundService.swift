@@ -19,7 +19,7 @@ enum AppAudioSession {
 }
 
 final class SoundService: SoundPlaying {
-    private static let musicVolume: Float = 0.2
+    private static let musicGain: Float = 0.4
 
     var isMusicEnabled: Bool {
         didSet {
@@ -34,18 +34,32 @@ final class SoundService: SoundPlaying {
         }
     }
 
+    var musicVolume: Double {
+        didSet { musicPlayer?.volume = Float(musicVolume) * Self.musicGain }
+    }
+
+    var effectsVolume: Double {
+        didSet {
+            for (effect, player) in effectPlayers {
+                player.volume = effect.volume * Float(effectsVolume)
+            }
+        }
+    }
+
     private var effectPlayers: [SoundEffect: AVAudioPlayer] = [:]
     private var musicPlayer: AVAudioPlayer?
 
-    init(isMusicEnabled: Bool, isEffectsEnabled: Bool) {
+    init(isMusicEnabled: Bool, isEffectsEnabled: Bool, musicVolume: Double = 0.5, effectsVolume: Double = 1) {
         self.isMusicEnabled = isMusicEnabled
         self.isEffectsEnabled = isEffectsEnabled
+        self.musicVolume = musicVolume
+        self.effectsVolume = effectsVolume
     }
 
     func startMusic() {
         guard isMusicEnabled else { return }
         if musicPlayer == nil {
-            musicPlayer = makePlayer(resource: "bgmusic", loops: true, volume: Self.musicVolume)
+            musicPlayer = makePlayer(resource: "bgmusic", loops: true, volume: Float(musicVolume) * Self.musicGain)
         }
         guard let musicPlayer, !musicPlayer.isPlaying else { return }
         musicPlayer.play()
@@ -75,7 +89,7 @@ final class SoundService: SoundPlaying {
             let player = makePlayer(
                 resource: effect.resourceName,
                 loops: effect.loops,
-                volume: effect.volume
+                volume: effect.volume * Float(effectsVolume)
             )
         else { return nil }
         effectPlayers[effect] = player

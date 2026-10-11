@@ -140,7 +140,7 @@ struct DoodleBackground: View {
 
 #Preview {
     VStack(spacing: 24) {
-        OutlinedText("Mind Blow")
+        OutlinedText("Mindblow")
         Button("Pass") {}.buttonStyle(.cartoon())
         Toggle("Music", isOn: .constant(true)).toggleStyle(CartoonToggleStyle()).padding()
             .cartoonCard()

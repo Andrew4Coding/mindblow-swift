@@ -109,7 +109,7 @@ struct GameView: View {
             Label("Calibrating background noise…", systemImage: "waveform.badge.microphone")
                 .font(.gaegu(22, relativeTo: .footnote))
                 .foregroundStyle(Palette.ink.opacity(0.7))
-                .symbolEffect(.wiggle.byLayer, options: .repeat(.continuous), isActive: !reduceMotion)
+                .wigglingSymbol(isActive: !reduceMotion)
         default:
             EmptyView()
         }
@@ -121,7 +121,7 @@ struct GameView: View {
                 .font(.gaegu(30, weight: .bold, relativeTo: .headline))
             Image(systemName: "chevron.down.2")
                 .font(.system(size: 20, weight: .heavy))
-                .symbolEffect(.wiggle.byLayer, options: .repeat(.continuous), isActive: !reduceMotion)
+                .wigglingSymbol(isActive: !reduceMotion)
         }
         .foregroundStyle(Palette.ink.opacity(0.75))
         .opacity(viewModel.showsBlowPrompt ? 1 : 0)
@@ -176,7 +176,7 @@ struct GameView: View {
                 .padding(.vertical, 2)
                 .cartoonSurface(Capsule(), fill: Palette.pink, lineWidth: 1.5, lift: 2)
         } else {
-            OutlinedText("Mind Blow", size: 38)
+            OutlinedText("Mindblow", size: 38)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }

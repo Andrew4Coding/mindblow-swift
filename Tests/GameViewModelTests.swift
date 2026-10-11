@@ -177,3 +177,41 @@ struct GameViewModelTests {
         #expect(viewModel.isCelebrating)
     }
 }
+
+@MainActor
+struct FinishFeedbackTests {
+    @Test func endingARunStopsPressureHapticsAndKeepsThemStopped() {
+        let detector = StubBlowDetector(intensity: 0.5)
+        let haptics = NoopHaptics()
+        let viewModel = GameViewModel(
+            detector: detector,
+            sound: SilentSoundService(),
+            haptics: haptics,
+            preferences: InMemoryPreferencesStore(),
+            pressureRange: 20...20
+        )
+        viewModel.startGame(mode: .single)
+        viewModel.tick(deltaTime: 0.2)
+        let updatesBeforeFinish = haptics.pressureUpdates.count
+        let stopsBeforeFinish = haptics.stopCount
+
+        viewModel.finish()
+        #expect(haptics.stopCount > stopsBeforeFinish)
+
+        viewModel.tick(deltaTime: 0.2)
+        viewModel.tick(deltaTime: 0.2)
+        #expect(haptics.pressureUpdates.count == updatesBeforeFinish)
+    }
+
+    @Test func volumeChangesReachSoundServiceAndPreferences() {
+        let preferences = InMemoryPreferencesStore()
+        let sound = SilentSoundService()
+        let viewModel = SettingsViewModel(preferences: preferences, sound: sound, haptics: NoopHaptics())
+        viewModel.musicVolume = 0.3
+        viewModel.effectsVolume = 0.8
+        #expect(sound.musicVolume == 0.3)
+        #expect(sound.effectsVolume == 0.8)
+        #expect(preferences.musicVolume == 0.3)
+        #expect(preferences.effectsVolume == 0.8)
+    }
+}

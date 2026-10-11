@@ -4,6 +4,8 @@ final class InMemoryPreferencesStore: PreferencesStoring {
     var highScore: Double
     var selectedSkin: TireSkin
     var isMusicEnabled: Bool
+    var musicVolume: Double
+    var effectsVolume: Double
     var isSoundEffectsEnabled: Bool
     var isHapticsEnabled: Bool
 
@@ -11,12 +13,16 @@ final class InMemoryPreferencesStore: PreferencesStoring {
         highScore: Double = 0,
         selectedSkin: TireSkin = .car,
         isMusicEnabled: Bool = true,
+        musicVolume: Double = 0.5,
+        effectsVolume: Double = 1,
         isSoundEffectsEnabled: Bool = true,
         isHapticsEnabled: Bool = true
     ) {
         self.highScore = highScore
         self.selectedSkin = selectedSkin
         self.isMusicEnabled = isMusicEnabled
+        self.musicVolume = musicVolume
+        self.effectsVolume = effectsVolume
         self.isSoundEffectsEnabled = isSoundEffectsEnabled
         self.isHapticsEnabled = isHapticsEnabled
     }
@@ -59,6 +65,8 @@ final class StubBlowDetector: BlowDetecting {
 final class SilentSoundService: SoundPlaying {
     var isMusicEnabled = true
     var isEffectsEnabled = true
+    var musicVolume = 0.5
+    var effectsVolume = 1.0
     private(set) var played: [SoundEffect] = []
     private(set) var stopped: [SoundEffect] = []
 
@@ -72,9 +80,10 @@ final class NoopHaptics: HapticsProviding {
     var isEnabled = true
     private(set) var pressureUpdates: [Double] = []
     private(set) var explosionCount = 0
+    private(set) var stopCount = 0
 
     func updatePressure(progress: Double) { pressureUpdates.append(progress) }
-    func stopPressure() {}
+    func stopPressure() { stopCount += 1 }
     func explosion() { explosionCount += 1 }
 }
 

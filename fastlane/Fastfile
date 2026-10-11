@@ -20,7 +20,7 @@ default_platform(:ios)
 WORKSPACE_DIR   = File.expand_path("..", __dir__)
 XCODEPROJ       = "MindBlow.xcodeproj"
 SCHEME          = "MindBlow"
-APP_IDENTIFIER  = "com.absolutecinema.mindblow"
+APP_IDENTIFIER  = "com.andrew4coding.mindblow"
 OUTPUT_DIR      = File.join(WORKSPACE_DIR, "build", "fastlane")
 
 platform :ios do
@@ -279,7 +279,7 @@ platform :ios do
   def beta_app_description
     desc = File.join(__dir__, "metadata", "en-US", "description.txt")
     text = File.exist?(desc) ? File.read(desc).strip.split("\n\n").first.to_s.strip : ""
-    text.empty? ? "Mind Blow — blow into your phone to inflate the tire, but don't let it pop." : text
+    text.empty? ? "Mindblow — blow into your phone to inflate the tire, but don't let it pop." : text
   end
 
   # Contact shown to Apple's beta reviewers only (never public). Phone must be

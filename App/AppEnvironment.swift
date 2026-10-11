@@ -39,7 +39,9 @@ final class AppEnvironment {
             detector: MicrophoneBlowDetector(),
             sound: SoundService(
                 isMusicEnabled: preferences.isMusicEnabled,
-                isEffectsEnabled: preferences.isSoundEffectsEnabled
+                isEffectsEnabled: preferences.isSoundEffectsEnabled,
+                musicVolume: preferences.musicVolume,
+                effectsVolume: preferences.effectsVolume
             ),
             haptics: CoreHapticsService(isEnabled: preferences.isHapticsEnabled)
         )

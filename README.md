@@ -1,4 +1,4 @@
-# Mind Blow
+# Mindblow
 
 Blow into your phone to inflate a tire, and stop before it pops. The microphone
 hears your breath live; nothing is recorded or stored. Single-player keeps a

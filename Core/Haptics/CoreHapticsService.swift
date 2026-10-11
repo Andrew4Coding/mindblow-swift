@@ -50,8 +50,14 @@ final class CoreHapticsService: HapticsProviding {
     }
 
     func stopPressure() {
-        try? pressurePlayer?.stop(atTime: CHHapticTimeImmediate)
+        guard let player = pressurePlayer else { return }
         pressurePlayer = nil
+        do {
+            try player.stop(atTime: CHHapticTimeImmediate)
+        } catch {
+            AppLog.haptics.debug("Stopping the engine because the pressure player would not stop: \(error.localizedDescription)")
+            engine?.stop()
+        }
     }
 
     func explosion() {

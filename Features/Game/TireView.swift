@@ -19,7 +19,7 @@ struct TireView: View {
     @State private var isRingHidden = false
 
     private var stress: Double {
-        guard !isExploded else { return 0 }
+        guard !isExploded, !isFinished else { return 0 }
         let value = max(0, (progress - 0.6) / 0.4)
         return min(1, value * value)
     }
@@ -71,6 +71,11 @@ struct TireView: View {
         .task(id: isExploded) { await playExplosion() }
         .task(id: isFinished && !isExploded) { await playFinished() }
         .task(id: hasBlownOnce) { await hideRingAfterDelay() }
+        .onChange(of: isFinished) { _, finished in
+            if finished && !isExploded {
+                withAnimation(.easeIn(duration: 0.3)) { isRingHidden = false }
+            }
+        }
         .onChange(of: progress >= Self.ringHidingProgress) { _, reached in
             if reached { hideRing() }
         }

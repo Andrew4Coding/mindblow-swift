@@ -1,7 +1,7 @@
 import OSLog
 
 nonisolated enum AppLog {
-    private static let subsystem = Bundle.main.bundleIdentifier ?? "com.absolutecinema.mindblow"
+    private static let subsystem = Bundle.main.bundleIdentifier ?? "com.andrew4coding.mindblow"
 
     static let audio = Logger(subsystem: subsystem, category: "audio")
     static let haptics = Logger(subsystem: subsystem, category: "haptics")

@@ -10,6 +10,20 @@ final class SettingsViewModel {
         }
     }
 
+    var musicVolume: Double {
+        didSet {
+            preferences.musicVolume = musicVolume
+            sound.musicVolume = musicVolume
+        }
+    }
+
+    var effectsVolume: Double {
+        didSet {
+            preferences.effectsVolume = effectsVolume
+            sound.effectsVolume = effectsVolume
+        }
+    }
+
     var isSoundEffectsEnabled: Bool {
         didSet {
             preferences.isSoundEffectsEnabled = isSoundEffectsEnabled
@@ -33,6 +47,8 @@ final class SettingsViewModel {
         self.sound = sound
         self.haptics = haptics
         self.isMusicEnabled = preferences.isMusicEnabled
+        self.musicVolume = preferences.musicVolume
+        self.effectsVolume = preferences.effectsVolume
         self.isSoundEffectsEnabled = preferences.isSoundEffectsEnabled
         self.isHapticsEnabled = preferences.isHapticsEnabled
     }

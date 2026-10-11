@@ -24,6 +24,8 @@ enum SoundEffect: Hashable {
 protocol SoundPlaying: AnyObject {
     var isMusicEnabled: Bool { get set }
     var isEffectsEnabled: Bool { get set }
+    var musicVolume: Double { get set }
+    var effectsVolume: Double { get set }
 
     func startMusic()
     func pauseMusic()

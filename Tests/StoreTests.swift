@@ -32,7 +32,10 @@ struct StoreTests {
         #expect(store.isMusicEnabled)
         #expect(store.isSoundEffectsEnabled)
         #expect(store.isHapticsEnabled)
+        #expect(store.musicVolume == 0.5)
+        #expect(store.effectsVolume == 1)
 
+        store.musicVolume = 0.25
         store.highScore = 0.7
         store.selectedSkin = .motor
         store.isMusicEnabled = false
@@ -41,6 +44,7 @@ struct StoreTests {
         #expect(reloaded.highScore == 0.7)
         #expect(reloaded.selectedSkin == .motor)
         #expect(!reloaded.isMusicEnabled)
+        #expect(reloaded.musicVolume == 0.25)
     }
 
     @Test func leaderboardViewModelRanksByScoreThenDate() {

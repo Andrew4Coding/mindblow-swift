@@ -64,11 +64,7 @@ private struct AnimatedCheckmarkLabelStyle: LabelStyle {
             configuration.title
         } icon: {
             configuration.icon
-                .symbolEffect(
-                    .bounce.up.byLayer,
-                    options: .repeat(.periodic(delay: 1)),
-                    isActive: !reduceMotion
-                )
+                .bouncingSymbol(isActive: !reduceMotion)
         }
     }
 }
