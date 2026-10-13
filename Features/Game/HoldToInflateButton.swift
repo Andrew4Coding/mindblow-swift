@@ -5,7 +5,7 @@ struct HoldToInflateButton: View {
     let onPressChanged: (Bool) -> Void
     let onActivate: () -> Void
 
-    @GestureState private var isPressed = false
+    @State private var isPressed = false
 
     var body: some View {
         Label("Hold to Inflate", systemImage: "wind")
@@ -21,16 +21,23 @@ struct HoldToInflateButton: View {
             .opacity(isEnabled ? 1 : 0.45)
             .gesture(
                 DragGesture(minimumDistance: 0)
-                    .updating($isPressed) { _, state, _ in state = true },
+                    .onChanged { _ in setPressed(true) }
+                    .onEnded { _ in setPressed(false) },
                 isEnabled: isEnabled
             )
-            .onChange(of: isPressed) { _, pressed in onPressChanged(pressed) }
-            .onDisappear { onPressChanged(false) }
+            .onChange(of: isEnabled) { _, enabled in if !enabled { setPressed(false) } }
+            .onDisappear { setPressed(false) }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Hold to inflate")
             .accessibilityHint("Double-tap for a short burst of air. Use this instead of blowing.")
             .accessibilityAddTraits(.isButton)
             .accessibilityAction(.default, onActivate)
+    }
+
+    private func setPressed(_ pressed: Bool) {
+        guard pressed != isPressed else { return }
+        isPressed = pressed
+        onPressChanged(pressed)
     }
 }
 

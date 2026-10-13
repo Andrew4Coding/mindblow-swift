@@ -204,6 +204,7 @@ final class GameViewModel {
     func beginHolding() {
         guard canInflate else { return }
         isHoldingToInflate = true
+        tick(deltaTime: Tuning.tickInterval.seconds)
     }
 
     func endHolding() {
